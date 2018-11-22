@@ -1,0 +1,3 @@
+[0m[[0m[31merror[0m] [0m[0mIO error while decoding /home/ptr/Projects/BCT/src/test/scala/.#BCTSpec.scala with UTF-8: /home/ptr/Projects/BCT/src/test/scala/.#BCTSpec.scala (No such file or directory)[0m
+[0m[[0m[31merror[0m] [0m[0mPlease try specifying another one using the -encoding option[0m
+[0m[[0m[31merror[0m] [0m[0mone error found[0m

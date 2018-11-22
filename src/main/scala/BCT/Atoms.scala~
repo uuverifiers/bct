@@ -1,0 +1,5 @@
+
+
+class FunEquation(fun : String, args : List[String], res : String) {
+  override def toString() = fun + "(" + args.mkString(",") + ") = " + res + "[FunEquation]"
+}

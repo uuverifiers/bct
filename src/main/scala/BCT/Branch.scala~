@@ -1,0 +1,24 @@
+package bct
+
+object Branch {
+  def apply(pseudoLiterals : List[PseudoLiteral]) = {
+    new Branch(pseudoLiterals, Open)
+  }
+
+  class Closer
+  case object Open extends Closer
+  case class ComplementaryPair(i1 : Int , i2 : Int) extends Closer
+  case class InvalidEquation(i : Int) extends Closer
+}
+
+class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Closer) {
+  def length = pseudoLiterals.length
+
+  override def toString() = pseudoLiterals.mkString("->")
+}
+
+object BranchOrdering extends Ordering[Branch] {
+  def compare(x : Branch, y : Branch) = {
+    x.length.compare(y.length)
+  }
+}

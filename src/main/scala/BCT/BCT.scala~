@@ -1,0 +1,6 @@
+package bct
+
+object BCT extends App {
+  println("HEllo world")
+  println(";...")
+}

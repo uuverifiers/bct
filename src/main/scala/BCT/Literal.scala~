@@ -1,0 +1,12 @@
+class Literal {}
+
+case class PositiveLiteral(atom : Atom) extends Literal {
+  override def toString() = atom.toString()
+}
+case class NegativeLiteral(atom : Atom) extends Literal {
+  override def toString() = "(-" + atom + ")"
+}
+
+class FunEquation(fun : String, args : List[String], res : String) {
+  override def toString() = fun + "(" + args.mkString(",") + ") = " + res + "[FunEquation]"
+}

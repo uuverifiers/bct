@@ -1,0 +1,13 @@
+package bct
+
+object PseudoClause {
+  def apply(pseudoLiterals : List[PseudoLiteral]) = {
+    new PseudoClause(pseudoLiterals)
+  }
+}
+
+class PseudoClause(pseudoLiterals : List[PseudoLiteral]) {
+  override def toString() = "[" + pseudoLiterals.mkString(" v ") + "]"
+
+  def length = pseudoLiterals.length
+}

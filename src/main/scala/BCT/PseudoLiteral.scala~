@@ -1,0 +1,33 @@
+package bct
+
+class FunEquation(fun : String, args : List[String], res : String) {
+  override def toString() = fun + "(" + args.mkString(",") + ") = " + res + "[FunEquation]"
+}
+
+class Atom(atom : String) {
+  override def toString() = atom
+}
+
+class Literal {}
+
+case class PositiveLiteral(atom : Atom) extends Literal {
+  override def toString() = atom.toString()
+}
+case class NegativeLiteral(atom : Atom) extends Literal {
+  override def toString() = "(-" + atom + ")"
+}
+
+
+// class PseudoAtom() {}
+// case class PositiveAtom(atom : Atom) extends PseudoAtom
+// case class NegativeAtom(atom : Atom) extends PseudoAtom
+// case class FunEquation(funEq : FunEquation) extends PseudoAtom
+
+
+class PseudoLiteral (val funs : List[FunEquation], val lit : Literal)  {
+
+  override def toString = {
+    "<" + funs.mkString("^") + "::" + lit + ">"
+  }
+
+}

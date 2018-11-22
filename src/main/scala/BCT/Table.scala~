@@ -1,0 +1,27 @@
+package bct
+
+import scala.collection.mutable.PriorityQueue
+
+object Table {
+  def apply(branches : List[Branch]) = {
+    implicit val bOrd = BranchOrdering
+    val pQ = PriorityQueue[Branch]()
+    for (b <- branches)
+      pQ.enqueue(b)
+    new Table(pQ, List())
+  }
+
+  def apply(cls : PseudoClause) = {
+    implicit val bOrd = BranchOrdering
+    val pQ = PriorityQueue[Branch]()
+    for (l <- cls) 
+      pQ.enqueue(Branch(List(l)))
+    new Table(pQ, List())
+  }
+}
+
+class Table(openBranches : PriorityQueue[Branch], closedBranches : List[Branch])(implicit branchOrdering : Ordering[Branch]) {
+  override def toString() = openBranches.mkString("\n") + closedBranches.mkString("\n")
+  def length = openBranches.length + closedBranches.length
+  def isClosed = openBranches.length == 0
+}
