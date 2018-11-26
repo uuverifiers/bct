@@ -17,4 +17,27 @@ class PseudoLiteral (val funs : List[FunEquation], val lit : Literal)  {
     "{" + funs.mkString("^") + "::" + lit + "}"
   }
 
+  val isNegativeFlatEquation = lit.isNegativeFlatEquation
+
+  def atom = {
+    lit match {
+      case PositiveLiteral(a) => a
+      case NegativeLiteral(a) => a
+      // TODO: How do we fix this kind of exampling
+      case _ => throw new Exception("Blaha")
+    }
+  }
+
+  def terms = {
+    lit match {
+      case NegativeFlatEquation(lhs, rhs) => (lhs, rhs)
+      case PositiveFlatEquation(lhs, rhs) => (lhs, rhs)
+      // TODO: How do we fix this kind of exampling
+      case _ => throw new Exception("Blaha")        
+    }
+  }
+
+  def isComplementary(that : PseudoLiteral) = {
+    lit.isComplementary(that.lit)
+  }
 }

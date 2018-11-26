@@ -7,7 +7,7 @@ object Atom {
 
 }
 
-class Atom(predicate : String, args : List[String]) {
+class Atom(val predicate : String, args : List[String]) {
   override def toString() = predicate + "(" + args.mkString(",") + ")"
 }
 

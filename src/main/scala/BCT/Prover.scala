@@ -1,5 +1,7 @@
 package bct
 
+// TODO: Make sure to use lazy val when possible
+
 object Prover {
   // Currently dummy. Int gives the number of input clauses.
   var allCount = -1
@@ -48,35 +50,54 @@ object Prover {
     }
   }
 
+  // Given steps and set of clauses, return which clause and which index to use
+  def litIdx(step : Int, clauses : Int, clauseIdx : Int = 0) : (PseudoClause, Int) = {
+    if (step < getInputClause(clauseIdx).length)
+      (getInputClause(clauseIdx), step)
+    else
+      litIdx(step - getInputClause(clauseIdx).length, clauses, clauseIdx+1)
+  }
 
-  def proveTable(table : Table, clauses : Int, nextStep : Int = 0) : Option[Table] = {
-    println("ProveTable...")
+
+
+  // Input: One branch and one step
+  // Output: If step is not applicable, None, else a tuple with the branch closed and new open branches
+  def handleStep(table: Table, step : Int, branch : Branch, clauses : Int) : Option[Table] = {
+    // Convert step to Closer
+    if (step == 0) {
+      // TODO: Fix Strong Connections
+      table.close(true)
+      // (branch.close(true), List() : List[Branch])
+    } else {
+      val (clause, idx) = litIdx(step-1, clauses)
+      table.extendAndClose(clause, idx)
+    }
+  }
+
+  def proveTable(table : Table, clauses : Int, step : Int = 0) : Option[Table] = {
+    println("\n\n\nProveTable...")
     println(table)
     if (table.isClosed) {
       Some(table)
     } else {
       // Did we try every step?
-      val maxStep = clauses.map(_.length).sum
-      if (nextStep == maxStep) {
+      // We first try to extend the table. Then we loop over different ways of closing it. Two-level loop.
+      val maxStep = (for (i <- 0 until clauses) yield getInputClause(i).length).sum
+      if (step > maxStep) {
+        // BACKTRACK
         None
       } else {
         // Extract open branch:
         val branch = table.nextBranch
 
         // Let's find a conflict
-
-        val conflict : Branch.Conflict = {
-          Branch.ComplementaryPair(0,1)
-        }
-
-        // If one is found, close table otherwise we have to backtrack
-        conflict match {
-          case Branch.Open => {
-            // BACKTRACK
-          }
-          case conflict => {
-            val nextTable = table.close(conflict)
-            proveTable(nextTable, clauses)
+        handleStep(table, step, branch, clauses) match {
+          case None => proveTable(table, clauses, step + 1)
+          case nextTable => {
+            proveTable(nextTable.get, clauses) match {
+              case None => proveTable(table, clauses, step + 1)
+              case closedTable => closedTable
+            }
           }
         }
       }
@@ -88,7 +109,12 @@ object Prover {
     val table = Table(getInputClause(0))
     println(table)
     val result = proveTable(table, 2)
-    println(result)
+
+    println("\n\n\n\n")
+    result match {
+      case None => println("No proof found...")
+      case Some(closedTable) => println("Proof found:\n" + closedTable)
+    }
 
   }
 }

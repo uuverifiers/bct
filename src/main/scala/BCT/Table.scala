@@ -30,9 +30,31 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch]) {
   def isClosed = openBranches.length == 0
   def nextBranch = openBranches.head
 
-  def close(conflict : Branch.Conflict) = {
-    val newClosedBranches = openBranches.head.close(conflict) :: closedBranches
-    val newOpenBranches = openBranches.tail
-    new Table(newOpenBranches, newClosedBranches)
+
+  def close(strong : Boolean) : Option[Table] = {
+    val branch = nextBranch
+    nextBranch.tryClose() match {
+      case None => None
+      case Some(closedBranch) => {
+        // We need to add some substitution propagation here
+        val closedTable = new Table(openBranches.tail, closedBranch :: closedBranches)
+        Some(closedTable)
+      }
+    }
+  }
+
+  def extendAndClose(clause : PseudoClause, idx : Int) : Option[Table] = {
+    val branch = nextBranch
+    val newBranches = (for (pl <- clause) yield branch.extend(pl)).toList
+    val testBranch = newBranches(idx)
+    val restBranches = newBranches.take(idx) ++ newBranches.drop(idx+1)
+    // TODO: Fix Strong Connections
+    testBranch.tryClose() match {
+      case None => None
+      case Some(closedBranch) => {
+        val closedTable = new Table(restBranches ++ openBranches.tail, closedBranch :: closedBranches)
+        Some(closedTable)
+      }
+    }
   }
 }
