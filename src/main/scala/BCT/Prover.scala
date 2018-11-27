@@ -23,26 +23,26 @@ object Prover {
 
     if (i == 0) { // R(x) v R(f(x))
       val x = newAll()
-      val a1 = Atom(pred, List(x)) // R(x)
+      val a1 = Atom(pred, List(Term("X", true))) // R(x)
 
       val c1 = newEx()
-      val feq1 = FunEquation(fun, List(Term("x")), c1)
-      val a2 = Atom(pred, List(c1))
+      val feq1 = FunEquation(fun, List(Term("X", true)), Term("c1"))
+      val a2 = Atom(pred, List(Term("c1")))
 
       val l1 = PseudoLiteral(PositiveLiteral(a1))
       val l2 = PseudoLiteral(List(feq1), PositiveLiteral(a2))
       PseudoClause(List(l1, l2))
     } else { // !R(x) v !R(f(f(x)))
       val x = newAll()
-      val a1 = Atom(pred, List(x)) // R(x)
+      val a1 = Atom(pred, List(Term("X", true))) // R(x)
 
       val c1 = newEx()
-      val feq1 = FunEquation(fun, List(Term("x")), c1)
-      val a2 = Atom(pred, List(c1))
+      val feq1 = FunEquation(fun, List(Term("X", true)), Term("c1"))
+      val a2 = Atom(pred, List(Term("c1")))
 
       val c2 = newEx()
-      val feq2 = FunEquation(fun, List(Term("c1")), c2)
-      val a3 = Atom(pred, List(c2))
+      val feq2 = FunEquation(fun, List(Term("c1")), Term("c2"))
+      val a3 = Atom(pred, List(Term("c2")))
 
       val l1 = PseudoLiteral(NegativeLiteral(a1))
       val l2 = PseudoLiteral(List(feq1, feq2), NegativeLiteral(a3))

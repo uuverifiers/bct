@@ -34,9 +34,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
         val n1 = pseudoLiterals(0)
         val pairConflict : List[Branch.Conflict]  =
           if (pseudoLiterals.length > 1) {
-            println("Checking pair conflict")
             val n2 = pseudoLiterals(1)
-            println("\t" + n1)
             if (n1.isComplementary(n2)) {
               List(Branch.ComplementaryPair(n1.atom, n2.atom))
             } else {
@@ -73,6 +71,22 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
 
   lazy val equations = pseudoLiterals.map(_.lit).filter(_.isPositiveFlatEquation)
 
+  lazy val order = {
+    import scala.collection.mutable.ListBuffer
+    val tmpOrder = ListBuffer() : ListBuffer[Term]
+    for (pl <- pseudoLiterals) {
+      for (feq <- pl.funs)
+        if (!tmpOrder.contains(feq.res))
+          tmpOrder += feq.res
+      for (t <- pl.lit.terms)
+        if (!tmpOrder.contains(t))        
+          tmpOrder += t
+    }
+
+    new Order(tmpOrder.toList)
+  }
+    
+
   def tryClose() : Option[Branch] = {
     // TODO: This always works
     println("Trying to close...")
@@ -88,8 +102,49 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
       // val argGoals : List[List[(ConstantTerm, ConstantTerm)]] = branch.toBREU
       // (argGoals.toList, funEqs ++ eqs)
       println("FunEqs: " + funEqs.mkString(", "))
-      println("Eqs: " + eqs.mkString(", "))      
-      val closedBranch = new Branch(pseudoLiterals, Branch.InvalidEquation(Term("asd"), Term("dsa")))
+      println("Eqs: " + eqs.mkString(", "))
+      println("Conflicts: ")
+      val goals = 
+        for (c <- conflicts) yield {
+          println("\t" + c)
+          c match {
+            // TODO: Handle Other conflicts
+            case Branch.ComplementaryPair(a1, a2) => {
+                (for ((arg1, arg2) <- a1.args zip a2.args) yield {
+                  println("\t\t" + ((arg1, arg2)))
+                  (arg1, arg2)
+                }).toList
+            }
+          }
+        }
+
+
+
+      println("Order:" + this.order)
+
+      // BREU arguments
+      val breuDomains = this.order.toDomains()
+
+      // TODO: Handle eqs!
+      val breuFlatEqs =
+        for (feq <- funEqs) yield {
+          (feq.fun, feq.args, feq.res)
+        }
+      val breuGoals = goals
+      // val breuNegFunEqs = List()
+
+
+      println("<<< BREU >>> ")
+      println(breuDomains)
+      println(breuFlatEqs)
+      println(breuGoals)
+
+      val breuSolver = new breu.LazySolver[Term, String](() => (), 60000)
+      val breuProblem = breuSolver.createProblem(breuDomains, List(breuGoals), List(breuFlatEqs))
+      println(breuProblem)
+      val result = breuProblem.solve
+      println(result)
+      val closedBranch = new Branch(pseudoLiterals, Branch.InvalidEquation(Term("asd", true), Term("dsa", false)))
       Some(closedBranch)
     }
   }
