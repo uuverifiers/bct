@@ -26,7 +26,7 @@ object Prover {
       val a1 = Atom(pred, List(x)) // R(x)
 
       val c1 = newEx()
-      val feq1 = FunEquation(fun, List(x), c1)
+      val feq1 = FunEquation(fun, List(Term("x")), c1)
       val a2 = Atom(pred, List(c1))
 
       val l1 = PseudoLiteral(PositiveLiteral(a1))
@@ -37,11 +37,11 @@ object Prover {
       val a1 = Atom(pred, List(x)) // R(x)
 
       val c1 = newEx()
-      val feq1 = FunEquation(fun, List(x), c1)
+      val feq1 = FunEquation(fun, List(Term("x")), c1)
       val a2 = Atom(pred, List(c1))
 
       val c2 = newEx()
-      val feq2 = FunEquation(fun, List(c1), c2)
+      val feq2 = FunEquation(fun, List(Term("c1")), c2)
       val a3 = Atom(pred, List(c2))
 
       val l1 = PseudoLiteral(NegativeLiteral(a1))
@@ -66,7 +66,7 @@ object Prover {
     // Convert step to Closer
     if (step == 0) {
       // TODO: Fix Strong Connections
-      table.close(true)
+      table.close()
       // (branch.close(true), List() : List[Branch])
     } else {
       val (clause, idx) = litIdx(step-1, clauses)

@@ -17,7 +17,7 @@ class PseudoLiteral (val funs : List[FunEquation], val lit : Literal)  {
     "{" + funs.mkString("^") + "::" + lit + "}"
   }
 
-  val isNegativeFlatEquation = lit.isNegativeFlatEquation
+  val funEquations = funs
 
   def atom = {
     lit match {

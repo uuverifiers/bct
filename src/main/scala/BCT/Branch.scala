@@ -26,22 +26,6 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
 
   override def toString() = pseudoLiterals.mkString("->")
 
-  def tryClose() : Option[Branch] = {
-    // TODO: This always works
-    println("Trying to close...")
-    println(this)
-    println(conflicts)
-    if (conflicts.length == 0) {
-      None
-    } else {
-      val closedBranch = new Branch(pseudoLiterals, Branch.InvalidEquation(Term("asd"), Term("dsa")))
-      Some(closedBranch)
-    }
-  }
-
-  def extend(pl : PseudoLiteral) =
-    new Branch(pl :: pseudoLiterals, closed)
-
 
   lazy val conflicts = {
     val allConflicts = {
@@ -63,7 +47,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
           }
 
         val singleConflict : List[Branch.Conflict] =
-          if (n1.isNegativeFlatEquation) {
+          if (n1.lit.isNegativeFlatEquation) {
             val (lhs, rhs) = n1.terms
             List(Branch.InvalidEquation(lhs, rhs))
           } else {
@@ -79,6 +63,41 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
     allConflicts
 
   }
+
+
+  lazy val funEquations = {
+    (for (pl <- pseudoLiterals) yield {
+      pl.funEquations
+    }).flatten
+  }
+
+  lazy val equations = pseudoLiterals.map(_.lit).filter(_.isPositiveFlatEquation)
+
+  def tryClose() : Option[Branch] = {
+    // TODO: This always works
+    println("Trying to close...")
+    println(this)
+    println(conflicts)
+    if (conflicts.length == 0) {
+      None
+    } else {
+      // Add BREU call here...
+
+      val funEqs = this.funEquations
+      val eqs = this.equations
+      // val argGoals : List[List[(ConstantTerm, ConstantTerm)]] = branch.toBREU
+      // (argGoals.toList, funEqs ++ eqs)
+      println("FunEqs: " + funEqs.mkString(", "))
+      println("Eqs: " + eqs.mkString(", "))      
+      val closedBranch = new Branch(pseudoLiterals, Branch.InvalidEquation(Term("asd"), Term("dsa")))
+      Some(closedBranch)
+    }
+  }
+
+  def extend(pl : PseudoLiteral) =
+    new Branch(pl :: pseudoLiterals, closed)
+
+  
 }
 
 

@@ -22,7 +22,7 @@ object Table {
 }
 
 // class Table(openBranches : List[Branch], closedBranches : List[Branch])(implicit branchOrdering : Ordering[Branch]) {
-class Table(openBranches : List[Branch], closedBranches : List[Branch]) {
+class Table(openBranches : List[Branch], closedBranches : List[Branch], strong : Boolean = true) {
 
   override def toString() = "<<<TABLE>>>\n" + openBranches.mkString("\n") + "\n--closed--\n" + closedBranches.mkString("\n") + "\n<<</TABLE>>>"
 
@@ -31,7 +31,7 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch]) {
   def nextBranch = openBranches.head
 
 
-  def close(strong : Boolean) : Option[Table] = {
+  def close() : Option[Table] = {
     val branch = nextBranch
     nextBranch.tryClose() match {
       case None => None
