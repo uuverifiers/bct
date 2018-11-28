@@ -96,7 +96,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
 
 
 
-  def tryClose() : (Option[(Branch, Model)]) = {
+  def tryClose(model : Model = Model.EmptyModel) : (Option[(Branch, Model)]) = {
     println("Trying to close: " + this)
     if (conflicts.length == 0) {
       println("\tNo conflict")
@@ -105,9 +105,6 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
       println(conflicts.mkString(" || "))
       val funEqs = this.funEquations
       val eqs = this.equations
-      // println("FunEqs: " + funEqs.mkString(", "))
-      // println("Eqs: " + eqs.mkString(", "))
-      // println("Conflicts: ")
       val goals = 
         for (c <- conflicts) yield {
           c match {
@@ -123,7 +120,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
       println("Order:" + this.order)
 
       // BREU arguments
-      val breuDomains = this.order.toDomains()
+      val breuDomains = this.order.toDomains(model)
 
       // TODO: Handle eqs!
       val breuFlatEqs =

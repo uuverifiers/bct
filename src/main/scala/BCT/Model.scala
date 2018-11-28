@@ -9,7 +9,25 @@ object Model {
   val EmptyModel = Model(Map())
 }
 
-class Model(val assignemnts : Map[Term, Term]) {
+class Model(val assignments : Map[Term, Term]) {
+
+  override def toString() = {
+    assignments.mkString("\n")
+  }
+
+  def apply(t : Term) = assignments(t)
+  def contains(t : Term) = assignments.contains(t)
+
+  def extend(newModel : Model) : Option[Model] = {
+    // Check that there are no conflicts
+    if (newModel.assignments.exists{
+      case (k,v) => assignments.contains(k) && assignments(k) != v
+    }) {
+      None
+    } else {
+      Some(Model(assignments ++ newModel.assignments))
+    }
+  }
 }
 
 

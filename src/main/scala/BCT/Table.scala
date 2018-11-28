@@ -26,7 +26,12 @@ object Table {
 class Table(openBranches : List[Branch], closedBranches : List[Branch], model : Model = Model.EmptyModel, strong : Boolean = true) {
 
   // override def toString() = "<<<TABLE>>>\n" + openBranches.mkString("\n") + "\n--closed--\n" + closedBranches.mkString("\n") + "\n<<</TABLE>>>"
-  override def toString() = "<<<TABLE>>>\n" + openBranches.mkString("\n") + "\n<<</TABLE>>>"  
+  override def toString() =
+    "<<<TABLE>>>\n" +
+  openBranches.mkString("\n") +
+  model + 
+  "\n<<</TABLE>>>"
+  
 
   def length = openBranches.length + closedBranches.length
   def isClosed = openBranches.length == 0
@@ -37,10 +42,14 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
     val branch = nextBranch
     nextBranch.tryClose() match {
       case None => None
-      case Some((closedBranch, model)) => {
-        // TODO :Combine models...
-        val closedTable = new Table(openBranches.tail, closedBranch :: closedBranches, model)
-        Some(closedTable)
+      case Some((newBranch, newModel)) => {
+        model.extend(newModel) match {
+          case Some(extendedModel) => {
+            val closedTable = new Table(openBranches.tail, newBranch :: closedBranches, extendedModel)
+            Some(closedTable)
+          }
+          case None => None
+        }
       }
     }
   }
@@ -54,9 +63,14 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
     // TODO :Combine models...
     testBranch.tryClose() match {
       case None => None
-      case Some((closedBranch, model)) => {
-        val closedTable = new Table(restBranches ++ openBranches.tail, closedBranch :: closedBranches, model)
-        Some(closedTable)
+      case Some((newBranch, newModel)) => {
+        model.extend(newModel) match {
+          case Some(extendedModel) => {
+            val closedTable = new Table(openBranches.tail, newBranch :: closedBranches, extendedModel)
+            Some(closedTable)
+          }
+          case None => None
+        }
       }
     }
   }

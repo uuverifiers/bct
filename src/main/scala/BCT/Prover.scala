@@ -76,7 +76,7 @@ object Prover {
 
   def proveTable(table : Table, clauses : Int, step : Int = 0) : Option[Table] = {
     println("\nProveTable...")
-    val MAX_WIDTH = 7
+    val MAX_WIDTH = 20
     if (table.isClosed) {
       println("\tClosed!")
       Some(table)
