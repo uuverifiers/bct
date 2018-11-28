@@ -24,7 +24,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
   assert(pseudoLiterals.length > 0)
   def length = pseudoLiterals.length
 
-  override def toString() = pseudoLiterals.mkString("->")
+  override def toString() = pseudoLiterals.mkString("<-")
 
 
   lazy val conflicts = {
@@ -74,51 +74,51 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
   lazy val order = {
     import scala.collection.mutable.ListBuffer
     val tmpOrder = ListBuffer() : ListBuffer[Term]
-    for (pl <- pseudoLiterals) {
-      for (feq <- pl.funs)
-        if (!tmpOrder.contains(feq.res))
-          tmpOrder += feq.res
+
+    def add(t : Term) = {
+      if (!tmpOrder.contains(t))
+        tmpOrder += t
+    }
+    
+    for (pl <- pseudoLiterals.reverse) {
+      for (feq <- pl.funs) {
+        for (a <- feq.args)
+          add(a)
+        add(feq.res)
+      }
+
       for (t <- pl.lit.terms)
-        if (!tmpOrder.contains(t))        
-          tmpOrder += t
+        add(t)
     }
 
     new Order(tmpOrder.toList)
   }
-    
 
-  def tryClose() : Option[Branch] = {
-    // TODO: This always works
-    println("Trying to close...")
-    println(this)
-    println(conflicts)
+
+
+  def tryClose() : (Option[(Branch, Model)]) = {
+    println("Trying to close: " + this)
     if (conflicts.length == 0) {
+      println("\tNo conflict")
       None
     } else {
-      // Add BREU call here...
-
+      println(conflicts.mkString(" || "))
       val funEqs = this.funEquations
       val eqs = this.equations
-      // val argGoals : List[List[(ConstantTerm, ConstantTerm)]] = branch.toBREU
-      // (argGoals.toList, funEqs ++ eqs)
-      println("FunEqs: " + funEqs.mkString(", "))
-      println("Eqs: " + eqs.mkString(", "))
-      println("Conflicts: ")
+      // println("FunEqs: " + funEqs.mkString(", "))
+      // println("Eqs: " + eqs.mkString(", "))
+      // println("Conflicts: ")
       val goals = 
         for (c <- conflicts) yield {
-          println("\t" + c)
           c match {
             // TODO: Handle Other conflicts
             case Branch.ComplementaryPair(a1, a2) => {
                 (for ((arg1, arg2) <- a1.args zip a2.args) yield {
-                  println("\t\t" + ((arg1, arg2)))
                   (arg1, arg2)
                 }).toList
             }
           }
         }
-
-
 
       println("Order:" + this.order)
 
@@ -134,18 +134,30 @@ class Branch(pseudoLiterals : List[PseudoLiteral], closed : Branch.Conflict, str
       // val breuNegFunEqs = List()
 
 
-      println("<<< BREU >>> ")
-      println(breuDomains)
-      println(breuFlatEqs)
-      println(breuGoals)
+      // println("<<< BREU >>> ")
+      // println(breuDomains)
+      // println(breuFlatEqs)
+      // println(breuGoals)
 
       val breuSolver = new breu.LazySolver[Term, String](() => (), 60000)
       val breuProblem = breuSolver.createProblem(breuDomains, List(breuGoals), List(breuFlatEqs))
-      println(breuProblem)
+      // println(breuProblem)
       val result = breuProblem.solve
-      println(result)
-      val closedBranch = new Branch(pseudoLiterals, Branch.InvalidEquation(Term("asd", true), Term("dsa", false)))
-      Some(closedBranch)
+      result match {
+        case breu.Result.SAT => {
+          println("\tSAT")
+          println(breuProblem.getModel)
+          // TODO: Extract actual closing...
+          val closedBranch = new Branch(pseudoLiterals, Branch.InvalidEquation(Term("asd", true), Term("dsa", false)))
+          val model = Model(breuProblem.getModel)
+          Some((closedBranch, model))
+        }
+        case breu.Result.UNSAT => {
+          println("\tUNSAT")
+          None
+        }
+        case _ => throw new Exception("Unknown") // TODO: Do we wanna treat this as UNSAT?
+      }
     }
   }
 

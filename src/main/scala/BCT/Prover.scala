@@ -9,12 +9,12 @@ object Prover {
 
   def newEx() = {
     exCount += 1
-    "EX_" + exCount
+    Term("c_" + exCount, false)
   }
 
   def newAll() = {
     allCount += 1
-    "ALL_" + allCount
+    Term("x_" + allCount, true)
   }  
 
   def getInputClause(i : Int) = {
@@ -23,26 +23,26 @@ object Prover {
 
     if (i == 0) { // R(x) v R(f(x))
       val x = newAll()
-      val a1 = Atom(pred, List(Term("X", true))) // R(x)
+      val a1 = Atom(pred, List(x)) // R(x)
 
       val c1 = newEx()
-      val feq1 = FunEquation(fun, List(Term("X", true)), Term("c1"))
-      val a2 = Atom(pred, List(Term("c1")))
+      val feq1 = FunEquation(fun, List(x), c1)
+      val a2 = Atom(pred, List(c1))
 
       val l1 = PseudoLiteral(PositiveLiteral(a1))
       val l2 = PseudoLiteral(List(feq1), PositiveLiteral(a2))
       PseudoClause(List(l1, l2))
     } else { // !R(x) v !R(f(f(x)))
       val x = newAll()
-      val a1 = Atom(pred, List(Term("X", true))) // R(x)
+      val a1 = Atom(pred, List(x)) // R(x)
 
       val c1 = newEx()
-      val feq1 = FunEquation(fun, List(Term("X", true)), Term("c1"))
-      val a2 = Atom(pred, List(Term("c1")))
+      val feq1 = FunEquation(fun, List(x), c1)
+      val a2 = Atom(pred, List(c1))
 
       val c2 = newEx()
-      val feq2 = FunEquation(fun, List(Term("c1")), Term("c2"))
-      val a3 = Atom(pred, List(Term("c2")))
+      val feq2 = FunEquation(fun, List(c1), c2)
+      val a3 = Atom(pred, List(c2))
 
       val l1 = PseudoLiteral(NegativeLiteral(a1))
       val l2 = PseudoLiteral(List(feq1, feq2), NegativeLiteral(a3))
@@ -75,18 +75,24 @@ object Prover {
   }
 
   def proveTable(table : Table, clauses : Int, step : Int = 0) : Option[Table] = {
-    println("\n\n\nProveTable...")
-    println(table)
+    println("\nProveTable...")
+    val MAX_WIDTH = 7
     if (table.isClosed) {
+      println("\tClosed!")
       Some(table)
+    } else if (table.length > MAX_WIDTH) {
+      println("\tmax width!")
+      None
     } else {
       // Did we try every step?
       // We first try to extend the table. Then we loop over different ways of closing it. Two-level loop.
       val maxStep = (for (i <- 0 until clauses) yield getInputClause(i).length).sum
       if (step > maxStep) {
+        println("\tmax step!")
         // BACKTRACK
         None
       } else {
+        println(table)
         // Extract open branch:
         val branch = table.nextBranch
 
@@ -105,12 +111,15 @@ object Prover {
   }
 
   def prove(clauses : Int) = {
-    println("Proving...")
+    println("Proving...")    
     val table = Table(getInputClause(0))
     println(table)
+    println("\n\n\n\n")
+
+
     val result = proveTable(table, 2)
 
-    println("\n\n\n\n")
+
     result match {
       case None => println("No proof found...")
       case Some(closedTable) => println("Proof found:\n" + closedTable)
