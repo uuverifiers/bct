@@ -28,9 +28,17 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
   // override def toString() = "<<<TABLE>>>\n" + openBranches.mkString("\n") + "\n--closed--\n" + closedBranches.mkString("\n") + "\n<<</TABLE>>>"
   override def toString() =
     "<<<TABLE>>>\n" +
-  openBranches.mkString("\n") +
-  model + 
+  openBranches.mkString("\n") + "\n" +
+  // model + 
   "\n<<</TABLE>>>"
+
+  def fullString() =
+    "<<<TABLE>>>\n" +
+  openBranches.mkString("\n") + "\n" + 
+  "<--------->\n" +
+  closedBranches.mkString("\n") + "\n" +
+  // model +  
+  "\n<<</TABLE>>>"    
   
 
   def length = openBranches.length + closedBranches.length
@@ -39,17 +47,13 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
 
 
   def close() : Option[Table] = {
-    val branch = nextBranch
-    nextBranch.tryClose() match {
+    println("Trying to close()")
+    val branch = nextBranch.weak
+    Branch.tryClose(branch :: closedBranches, true) match {
       case None => None
-      case Some((newBranch, newModel)) => {
-        model.extend(newModel) match {
-          case Some(extendedModel) => {
-            val closedTable = new Table(openBranches.tail, newBranch :: closedBranches, extendedModel)
-            Some(closedTable)
-          }
-          case None => None
-        }
+      case Some(newModel) => {
+        val closedTable = new Table(openBranches.tail, branch.closed :: closedBranches, newModel)
+        Some(closedTable)
       }
     }
   }
@@ -61,16 +65,11 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
     val restBranches = newBranches.take(idx) ++ newBranches.drop(idx+1)
     // TODO: Fix Strong Connections
     // TODO :Combine models...
-    testBranch.tryClose() match {
+    Branch.tryClose(testBranch :: closedBranches) match {    
       case None => None
-      case Some((newBranch, newModel)) => {
-        model.extend(newModel) match {
-          case Some(extendedModel) => {
-            val closedTable = new Table(openBranches.tail, newBranch :: closedBranches, extendedModel)
-            Some(closedTable)
-          }
-          case None => None
-        }
+      case Some(newModel) => {
+        val closedTable = new Table(restBranches ++ openBranches.tail, testBranch.closed :: closedBranches, newModel)
+        Some(closedTable)
       }
     }
   }

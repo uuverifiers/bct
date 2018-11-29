@@ -6,6 +6,7 @@ import scala.collection.immutable.{Set, Map}
 // the smallest term and univ_t_1 means that t_1 is universal
 // (i.e. can take the value of all smaller or equal terms.
 
+
 class Order(val terms_ : List[(Term)]) {
   // TODO: Here we are inserting dummy-element!
   val terms = Term(9775.toChar.toString, false) :: terms_
@@ -14,9 +15,7 @@ class Order(val terms_ : List[(Term)]) {
     terms.mkString("<")
   }
 
-  type Domains = Map[Term, Set[Term]]
-
-  def toDomains(model : Model) : Domains = {
+  def toDomains(model : Model = Model.EmptyModel) : Domains = {
     import scala.collection.mutable.{Set => MSet, Map => MMap}
 
     // TODO: Are we sure we have all terms here?
@@ -33,6 +32,6 @@ class Order(val terms_ : List[(Term)]) {
         domains += (t -> seenTerms.toSet)
     }
 
-    domains.toMap
+    Domains(domains.toMap)
   }
 }

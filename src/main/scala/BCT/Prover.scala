@@ -21,7 +21,13 @@ object Prover {
     val pred = "R"
     val fun = "f"
 
-    if (i == 0) { // R(x) v R(f(x))
+    if (i == -1) { // R(x)
+      val x = newAll()
+      val a1 = Atom(pred, List(x)) // R(x)
+
+      val l1 = PseudoLiteral(PositiveLiteral(a1))
+      PseudoClause(List(l1))
+    } else if (i == 0) { // R(x) v R(f(x))
       val x = newAll()
       val a1 = Atom(pred, List(x)) // R(x)
 
@@ -32,7 +38,7 @@ object Prover {
       val l1 = PseudoLiteral(PositiveLiteral(a1))
       val l2 = PseudoLiteral(List(feq1), PositiveLiteral(a2))
       PseudoClause(List(l1, l2))
-    } else { // !R(x) v !R(f(f(x)))
+    } else if (i == 1) { // !R(x) v !R(f(f(x)))
       val x = newAll()
       val a1 = Atom(pred, List(x)) // R(x)
 
@@ -47,6 +53,8 @@ object Prover {
       val l1 = PseudoLiteral(NegativeLiteral(a1))
       val l2 = PseudoLiteral(List(feq1, feq2), NegativeLiteral(a3))
       PseudoClause(List(l1, l2))
+    } else {
+      throw new Exception("Underfined Input Clause")
     }
   }
 
@@ -65,18 +73,18 @@ object Prover {
   def handleStep(table: Table, step : Int, branch : Branch, clauses : Int) : Option[Table] = {
     // Convert step to Closer
     if (step == 0) {
-      // TODO: Fix Strong Connections
       table.close()
-      // (branch.close(true), List() : List[Branch])
     } else {
       val (clause, idx) = litIdx(step-1, clauses)
       table.extendAndClose(clause, idx)
     }
   }
 
-  def proveTable(table : Table, clauses : Int, step : Int = 0) : Option[Table] = {
-    println("\nProveTable...")
-    val MAX_WIDTH = 20
+
+  var PROVE_TABLE_STEP = 0
+  def proveTable(table : Table, clauses : Int, step : Int = 0, steps : List[Int] = List())(implicit MAX_WIDTH : Int) : Option[Table] = {
+    println("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
+    PROVE_TABLE_STEP += 1
     if (table.isClosed) {
       println("\tClosed!")
       Some(table)
@@ -92,16 +100,16 @@ object Prover {
         // BACKTRACK
         None
       } else {
-        println(table)
         // Extract open branch:
         val branch = table.nextBranch
 
         // Let's find a conflict
         handleStep(table, step, branch, clauses) match {
-          case None => proveTable(table, clauses, step + 1)
-          case nextTable => {
-            proveTable(nextTable.get, clauses) match {
-              case None => proveTable(table, clauses, step + 1)
+          case None => proveTable(table, clauses, step + 1, steps)
+          case Some(nextTable) => {
+            println(nextTable.fullString())
+            proveTable(nextTable, clauses, 0, step::steps) match {
+              case None => proveTable(table, clauses, step + 1,steps)
               case closedTable => closedTable
             }
           }
@@ -117,12 +125,16 @@ object Prover {
     println("\n\n\n\n")
 
 
-    val result = proveTable(table, 2)
-
+    var result = None : Option[Table]
+    var maxWidth = 5
+    while (!result.isDefined && maxWidth < 20) {
+      result = proveTable(table, 2)(maxWidth)
+      maxWidth += 1
+    }
 
     result match {
       case None => println("No proof found...")
-      case Some(closedTable) => println("Proof found:\n" + closedTable)
+      case Some(closedTable) => println("Proof found:\n" + closedTable.fullString())
     }
 
   }
