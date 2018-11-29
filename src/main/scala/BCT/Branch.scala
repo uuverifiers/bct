@@ -63,6 +63,7 @@ object BranchOrdering extends Ordering[Branch] {
 class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = false, strong : Boolean = true) {
   assert(pseudoLiterals.length > 0)
   def length = pseudoLiterals.length
+  def depth = pseudoLiterals.length
 
   override def toString() = pseudoLiterals.mkString("<-") + " || " + conflicts
 

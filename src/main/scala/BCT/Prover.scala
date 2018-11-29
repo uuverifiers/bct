@@ -82,13 +82,13 @@ object Prover {
 
 
   var PROVE_TABLE_STEP = 0
-  def proveTable(table : Table, clauses : Int, step : Int = 0, steps : List[Int] = List())(implicit MAX_WIDTH : Int) : Option[Table] = {
+  def proveTable(table : Table, clauses : Int, step : Int = 0, steps : List[Int] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
     println("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
     PROVE_TABLE_STEP += 1
     if (table.isClosed) {
       println("\tClosed!")
       Some(table)
-    } else if (table.length > MAX_WIDTH) {
+    } else if (table.depth > MAX_DEPTH) {
       println("\tmax width!")
       None
     } else {
@@ -126,10 +126,10 @@ object Prover {
 
 
     var result = None : Option[Table]
-    var maxWidth = 5
-    while (!result.isDefined && maxWidth < 20) {
-      result = proveTable(table, 2)(maxWidth)
-      maxWidth += 1
+    var maxDepth = 1
+    while (!result.isDefined && maxDepth < 8) {
+      result = proveTable(table, 2)(maxDepth)
+      maxDepth += 1
     }
 
     result match {

@@ -42,6 +42,7 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
   
 
   def length = openBranches.length + closedBranches.length
+  def depth = openBranches.map(_.depth).max
   def isClosed = openBranches.length == 0
   def nextBranch = openBranches.head
 
