@@ -1,7 +1,5 @@
 package bct
 
-// import scala.collection.mutable.PriorityQueue
-
 object Table {
   def apply(branches : List[Branch]) = {
     // implicit val bOrd = BranchOrdering
@@ -21,8 +19,6 @@ object Table {
   }
 }
 
-// class Table(openBranches : List[Branch], closedBranches : List[Branch])(implicit branchOrdering : Ordering[Branch]) {
-// TODO: Maybe have sub-classes for strong and weak table?
 class Table(openBranches : List[Branch], closedBranches : List[Branch], model : Model = Model.EmptyModel, strong : Boolean = true) {
 
   // override def toString() = "<<<TABLE>>>\n" + openBranches.mkString("\n") + "\n--closed--\n" + closedBranches.mkString("\n") + "\n<<</TABLE>>>"
@@ -64,12 +60,11 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
     val newBranches = (for (pl <- clause) yield branch.extend(pl)).toList
     val testBranch = newBranches(idx)
     val restBranches = newBranches.take(idx) ++ newBranches.drop(idx+1)
-    // TODO: Fix Strong Connections
-    // TODO :Combine models...
     Branch.tryClose(testBranch :: closedBranches) match {    
       case None => None
       case Some(newModel) => {
-        val closedTable = new Table(restBranches ++ openBranches.tail, testBranch.closed :: closedBranches, newModel)
+        val closedTable =
+          new Table(restBranches ++ openBranches.tail, testBranch.closed :: closedBranches, newModel)
         Some(closedTable)
       }
     }

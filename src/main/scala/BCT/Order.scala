@@ -18,11 +18,9 @@ class Order(val terms_ : List[(Term)]) {
   def toDomains(model : Model = Model.EmptyModel) : Domains = {
     import scala.collection.mutable.{Set => MSet, Map => MMap}
 
-    // TODO: Are we sure we have all terms here?
     val seenTerms = MSet() : MSet[Term]
     val domains = MMap() : MMap[Term, Set[Term]]
     for (t <- terms) {
-      // TODO: Should t be included in domain? Yes for sure?
       seenTerms += t
       if (!t.isUniversal)
         domains += (t -> Set(t))

@@ -1,6 +1,7 @@
 package bct
 
-// TODO: Make sure to use lazy val when possible
+// TODO: Insert assertions
+
 
 object Prover {
   // Currently dummy. Int gives the number of input clauses.

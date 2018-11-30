@@ -1,14 +1,16 @@
 package bct
 
 object Branch {
-  def apply(pseudoLiterals : List[PseudoLiteral]) = {
-    new Branch(pseudoLiterals)
+  def apply(pseudoLiterals : List[PseudoLiteral], isClosed : Boolean = false, strong : Boolean = true) = {
+    new Branch(pseudoLiterals, isClosed, strong)
   }
 
   class Conflict
   case class ComplementaryPair(a1 : Atom , a2 : Atom) extends Conflict
   case class InvalidEquation(t1 : Term, t2 : Term) extends Conflict
 
+  type FlatEquation = (String, List[Term], Term)
+  type Goal = List[List[(Term, Term)]]
 
   def tryClose(branches : List[Branch], debug : Boolean = false) : (Option[Model]) = {
     val subProblems = branches.map(_.toBreu)
@@ -38,14 +40,12 @@ object Branch {
       result match {
         case breu.Result.SAT => {
           println("\tSAT")
-          // TODO: Extract actual closing...
           Some(Model(breuProblem.getModel))
         }
-        case breu.Result.UNSAT => {
-          println("\tUNSAT")
+        case breu.Result.UNSAT | breu.Result.UNKNOWN => {
+          println("\tUNSAT or UNKNOWN")
           None
         }
-        case _ => throw new Exception("Unknown") // TODO: Do we wanna treat this as UNSAT?
       }
     }
   }
@@ -67,55 +67,50 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
 
   override def toString() = pseudoLiterals.mkString("<-") + " || " + conflicts
 
-  lazy val closed = new Branch(pseudoLiterals, true, strong)
-  lazy val weak = new Branch(pseudoLiterals, isClosed, false)
+  lazy val closed = Branch(pseudoLiterals, true, strong)
+  lazy val weak = Branch(pseudoLiterals, isClosed, false)
 
   lazy val conflicts = {
-    val allConflicts = {
-      if (strong) {
-        // Only allow contradiction involving last one or two nodes        
-        val n1 = pseudoLiterals(0)
-        val pairConflict : List[Branch.Conflict]  =
-          if (pseudoLiterals.length > 1) {
-            val n2 = pseudoLiterals(1)
-            if (n1.isComplementary(n2)) {
-              List(Branch.ComplementaryPair(n1.atom, n2.atom))
-            } else {
-              List()
-            }
+    if (strong) {
+      // Only allow contradiction involving last one or two nodes
+      val n1 = pseudoLiterals(0)
+      val pairConflict : List[Branch.Conflict]  =
+        if (pseudoLiterals.length > 1) {
+          val n2 = pseudoLiterals(1)
+          if (n1.isComplementary(n2)) {
+            List(Branch.ComplementaryPair(n1.atom, n2.atom))
           } else {
             List()
           }
+        } else {
+          List()
+        }
 
-        val singleConflict : List[Branch.Conflict] =
-          if (n1.lit.isNegativeFlatEquation) {
-            val (lhs, rhs) = n1.terms
-            List(Branch.InvalidEquation(lhs, rhs))
-          } else {
-            List()
-          }
+      val singleConflict : List[Branch.Conflict] =
+        if (n1.lit.isNegativeFlatEquation) {
+          val (lhs, rhs) = n1.terms
+          List(Branch.InvalidEquation(lhs, rhs))
+        } else {
+          List()
+        }
 
-        pairConflict ++ singleConflict
-      } else {
-        val n1 = pseudoLiterals(0)
-        val pairConflicts : List[Branch.Conflict]  =        
-          for (n2 <- pseudoLiterals.tail; if n1.isComplementary(n2))
-          yield Branch.ComplementaryPair(n1.atom, n2.atom)
+      pairConflict ++ singleConflict
+    } else {
+      val n1 = pseudoLiterals(0)
+      val pairConflicts : List[Branch.Conflict]  =
+        for (n2 <- pseudoLiterals.tail; if n1.isComplementary(n2))
+        yield Branch.ComplementaryPair(n1.atom, n2.atom)
 
-        val singleConflict : List[Branch.Conflict] =
-          if (n1.lit.isNegativeFlatEquation) {
-            val (lhs, rhs) = n1.terms
-            List(Branch.InvalidEquation(lhs, rhs))
-          } else {
-            List()
-          }
+      val singleConflict : List[Branch.Conflict] =
+        if (n1.lit.isNegativeFlatEquation) {
+          val (lhs, rhs) = n1.terms
+          List(Branch.InvalidEquation(lhs, rhs))
+        } else {
+          List()
+        }
 
-        pairConflicts ++ singleConflict
-      }
+      pairConflicts ++ singleConflict
     }
-
-    allConflicts
-
   }
 
 
@@ -150,10 +145,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
     new Order(tmpOrder.toList)
   }
 
-
-
-  // TODO :Fix types for this
-  lazy val toBreu : (Option[(Domains, List[(String, List[Term], Term)], List[List[(Term, Term)]])]) = {
+  lazy val toBreu : Option[(Domains, List[Branch.FlatEquation], Branch.Goal)] = {
     if (conflicts.length == 0) {
       None
     } else {
@@ -162,16 +154,18 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
       val goals =
         for (c <- conflicts) yield {
           c match {
-            // TODO: Handle Other conflicts
             case Branch.ComplementaryPair(a1, a2) => {
               (for ((arg1, arg2) <- a1.args zip a2.args) yield {
                 (arg1, arg2)
               }).toList
             }
+            case Branch.InvalidEquation(t1, t2) => {
+              // TODO: Handle Invalid Equation
+              throw new Exception("Invalid Equations not handled: " + (t1, t2))
+            }
           }
         }
 
-      // println("Order:" + this.order)
 
       // BREU arguments
       val breuDomains = this.order.toDomains()
@@ -188,69 +182,12 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
     }
   }
 
-  def tryClose(model : Model = Model.EmptyModel) : (Option[Model]) = {
-    println("Trying to close: " + this)
-    if (conflicts.length == 0) {
-      println("\tNo conflict")
-      None
-    } else {
-      println(conflicts.mkString(" || "))
-      val funEqs = this.funEquations
-      val eqs = this.equations
-      val goals = 
-        for (c <- conflicts) yield {
-          c match {
-            // TODO: Handle Other conflicts
-            case Branch.ComplementaryPair(a1, a2) => {
-                (for ((arg1, arg2) <- a1.args zip a2.args) yield {
-                  (arg1, arg2)
-                }).toList
-            }
-          }
-        }
+  def tryClose() = Branch.tryClose(List(this))
 
-      println("Order:" + this.order)
-
-      // BREU arguments
-      val breuDomains = this.order.toDomains(model)
-
-      // TODO: Handle eqs!
-      val breuFlatEqs =
-        for (feq <- funEqs) yield {
-          (feq.fun, feq.args, feq.res)
-        }
-      val breuGoals = goals
-      // val breuNegFunEqs = List()
-
-
-      println("<<< BREU >>> ")
-      println(breuDomains)
-      println(breuFlatEqs)
-      println(breuGoals)
-
-      val breuSolver = new breu.LazySolver[Term, String](() => (), 60000)
-      val breuProblem = breuSolver.createProblem(breuDomains.domains, List(breuGoals), List(breuFlatEqs))
-      // println(breuProblem)
-      val result = breuProblem.solve
-      result match {
-        case breu.Result.SAT => {
-          println("SAT")
-          // println(breuProblem.getModel)
-          // TODO: Do we extract actual closing...
-          Some(model)
-        }
-        case breu.Result.UNSAT => {
-          println("UNSAT")
-          None
-        }
-        case _ => throw new Exception("Unknown") // TODO: Do we wanna treat this as UNSAT?
-      }
-    }
-  }  
-
-  // TODO: Make sure all new branches are created by constructors. Then we can make sure this is not done on closed branches?
-  def extend(pl : PseudoLiteral) =
-    new Branch(pl :: pseudoLiterals)
+  def extend(pl : PseudoLiteral) = {
+    assert(!isClosed)
+    Branch(pl :: pseudoLiterals, isClosed, strong)
+  }
 
   
 }

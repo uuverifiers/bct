@@ -1,5 +1,7 @@
 package bct
 
+
+
 object PseudoLiteral {
   def apply(funs : List[FunEquation], lit : Literal) = {
     new PseudoLiteral(funs, lit)
@@ -23,8 +25,7 @@ class PseudoLiteral (val funs : List[FunEquation], val lit : Literal)  {
     lit match {
       case PositiveLiteral(a) => a
       case NegativeLiteral(a) => a
-      // TODO: How do we fix this kind of exampling
-      case _ => throw new Exception("Blaha")
+      case _ => throw new Exception("Retrieving atom from " + lit)
     }
   }
 
@@ -32,8 +33,7 @@ class PseudoLiteral (val funs : List[FunEquation], val lit : Literal)  {
     lit match {
       case NegativeFlatEquation(lhs, rhs) => (lhs, rhs)
       case PositiveFlatEquation(lhs, rhs) => (lhs, rhs)
-      // TODO: How do we fix this kind of exampling
-      case _ => throw new Exception("Blaha")        
+      case _ => throw new Exception("Retrieving terms from " + lit)        
     }
   }
 
