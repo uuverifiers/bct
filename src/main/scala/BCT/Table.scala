@@ -43,10 +43,17 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
   def nextBranch = openBranches.head
 
 
+  def closeBranches(branches : List[Branch]) = {
+    val retryModel = Branch.tryClose(branches, model)
+    if (retryModel.isDefined)
+      retryModel
+    else
+      Branch.tryClose(branches)
+  }
+
   def close() : Option[Table] = {
-    println("Trying to close()")
     val branch = nextBranch.weak
-    Branch.tryClose(branch :: closedBranches, true) match {
+    closeBranches(branch :: closedBranches) match {
       case None => None
       case Some(newModel) => {
         val closedTable = new Table(openBranches.tail, branch.closed :: closedBranches, newModel)
@@ -60,7 +67,7 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
     val newBranches = (for (pl <- clause) yield branch.extend(pl)).toList
     val testBranch = newBranches(idx)
     val restBranches = newBranches.take(idx) ++ newBranches.drop(idx+1)
-    Branch.tryClose(testBranch :: closedBranches) match {    
+    closeBranches(testBranch :: closedBranches) match {    
       case None => None
       case Some(newModel) => {
         val closedTable =

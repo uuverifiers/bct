@@ -12,40 +12,30 @@ object Branch {
   type FlatEquation = (String, List[Term], Term)
   type Goal = List[List[(Term, Term)]]
 
-  def tryClose(branches : List[Branch], debug : Boolean = false) : (Option[Model]) = {
+  def tryClose(branches : List[Branch], model : Model = Model.EmptyModel) : (Option[Model]) = {
     val subProblems = branches.map(_.toBreu)
     if (subProblems contains None) {
       None
     } else {
       var domains = Domains.EmptyDomains
       val breuSubProblems = 
-      for (sp <- subProblems) yield {
-        val (subDomains, subEqs, subGoals) = sp.get
-        domains = domains.extend(subDomains)
-        (subGoals, subEqs)
-      }
+        for (sp <- subProblems) yield {
+          val (subDomains, subEqs, subGoals) = sp.get
+          domains = domains.extend(subDomains)
+          (subGoals, subEqs)
+        }
+
+      // If given a model, assign values accordingly
+      domains = domains.assign(model)
 
       val breuGoals = breuSubProblems.map(_._1)
       val breuEqs = breuSubProblems.map(_._2)
-
       val breuSolver = new breu.LazySolver[Term, String](() => (), 60000)
       val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs)
 
-      if (debug) {
-        println(branches.mkString("\n"))
-        println(breuProblem)
-      }
-      // println(breuProblem)
-      val result = breuProblem.solve
-      result match {
-        case breu.Result.SAT => {
-          println("\tSAT")
-          Some(Model(breuProblem.getModel))
-        }
-        case breu.Result.UNSAT | breu.Result.UNKNOWN => {
-          println("\tUNSAT or UNKNOWN")
-          None
-        }
+      breuProblem.solve match {
+        case breu.Result.SAT => Some(Model(breuProblem.getModel))
+        case breu.Result.UNSAT | breu.Result.UNKNOWN => None
       }
     }
   }
@@ -160,8 +150,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
               }).toList
             }
             case Branch.InvalidEquation(t1, t2) => {
-              // TODO: Handle Invalid Equation
-              throw new Exception("Invalid Equations not handled: " + (t1, t2))
+              List((t1, t2))
             }
           }
         }
@@ -171,14 +160,22 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
       val breuDomains = this.order.toDomains()
 
       // TODO: Handle eqs!
-      val breuFlatEqs =
+
+      var nextDummyPredicate = 0
+      val breuFlatEqs1 =
+        (for (PositiveFlatEquation(lhs, rhs) <- eqs) yield {
+          nextDummyPredicate += 1
+          List(("dummy_predicate_" + nextDummyPredicate, List(), lhs), ("dummy_predicate_" + nextDummyPredicate, List(), rhs))
+        }).flatten
+
+      val breuFlatEqs2 =
         for (feq <- funEqs) yield {
           (feq.fun, feq.args, feq.res)
         }
       val breuGoals = goals
       // val breuNegFunEqs = List()
 
-      Some((breuDomains, breuFlatEqs, breuGoals))
+      Some((breuDomains, breuFlatEqs1 ++ breuFlatEqs2, breuGoals))
     }
   }
 
@@ -191,38 +188,3 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
 
   
 }
-
-
-
-      // c match {
-      //   case ConnectionNegEq(node) => {
-      //     (nodes(node)) match {
-      //       case (NegEquation(t1, t2)) => {
-      //         List((t1, t2))
-      //       }
-      //       case _ => throw new Exception("ConnectionNegEq is pointing wrong!")
-      //     }
-      //   }
-      //   case ConnectionCompLits(node1, node2) => {
-      //     (nodes(node1), nodes(node2)) match {
-      //       case (pl : PositiveLiteral, nl : NegativeLiteral) =>
-      //         for ((t1, t2) <- pl.args zip nl.args) yield (t1, t2)
-      //       case (nl : NegativeLiteral, pl : PositiveLiteral) =>
-      //         for ((t1, t2) <- pl.args zip nl.args) yield (t1, t2)
-      //     }
-      //         // val pred1atom = (pred1.negativeLits ++ pred1.positiveLits).head
-      //         // val pred2atom = (pred2.negativeLits ++ pred2.positiveLits).head
-
-      //         // (node1, node2)
-      //         // for ((arg1, arg2) <- (pred1atom zip pred2atom).toList) yield {
-      //         //-BEGIN-ASSERTION-/////////////////////////////////////////////////////////
-      //         // Debug.assertPre(ConnectionProver.AC, arg1.termIterator.size == 1 && arg2.termIterator.size == 1)
-      //         //-END-ASSERTION-//////////////////////////////////////////////////////////
-      //           // println("\t" + arg1 + "\t?=\t" + arg2)
-      //           // println("\t" + arg1.getClass + " \t?=\t" + arg2.getClass)
-      //           // (arg1.lastTerm.constants.head, arg2.lastTerm.constants.head)
-      //           // }
-      //     //   case _ => throw new Exception("ConncetionCompLits is pointing wrong!")
-      //     // }
-      //   }
-      // }

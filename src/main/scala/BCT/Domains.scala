@@ -25,4 +25,15 @@ class Domains(val domains : Map[Term, Set[Term]]) {
 
     Domains(newMap.toMap)
   }
+
+  def assign(model : Model) = {
+    val newDomains = 
+      for ((k, v) <- domains) yield {
+        if (model.contains(k))
+          k -> Set(model(k))
+        else
+          k -> v
+      }
+    Domains(newDomains)
+  }
 }
