@@ -1,5 +1,5 @@
 package bct
 
 object BCT extends App {
-  Prover.prove(2)
+  Prover.prove(Ex3)
 }

@@ -98,3 +98,22 @@ object Ex2 extends Example {
       case 1 => PseudoClause(List(PseudoLiteral(aNEQb)))
     }
 }
+
+
+// featers
+object Ex3 extends Example {
+  val feathers = "feathers"
+  val bird = "bird"
+  val t = Term("t")
+
+  val clauses = 3
+  def clause(i : Int) =
+    i match {
+      case 0 => {
+        val x = newAll()
+        PseudoClause(List(PseudoLiteral(NegativeLiteral(Atom(bird, List(x)))), PseudoLiteral(PositiveLiteral(Atom(feathers, List(x))))))
+      }
+      case 1 => PseudoClause(List(PseudoLiteral(PositiveLiteral(Atom(bird, List(t))))))
+      case 2 => PseudoClause(List(PseudoLiteral(NegativeLiteral(Atom(feathers, List(t))))))
+    }
+}

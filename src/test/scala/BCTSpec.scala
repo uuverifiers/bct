@@ -3,21 +3,15 @@ package bct
 import org.scalatest._
 
 class BCTSpec extends FunSuite with DiagrammedAssertions {
-  test("BCT should start with B") {
-    assert("bct".startsWith("b"))
+  test ("Ex1 should find proof") {
+    assert(Prover.prove(Ex1).isDefined)
   }
 
-  test("Atoms") {
-    val a = Atom("R", List("a"))
-    val b = Atom("R", List("b"))
-
-    val feq = new FunEquation("f", List("a1", "a2"), "b")
+  test ("Ex2 should find proof") {
+    assert(Prover.prove(Ex2).isDefined)    
   }
 
-  test ("Prover can run example") {
-
-    Prover.prove(2)
-    println("\n\nEND OF TEST\n\n")
-  }
-
+  test ("Ex3 should find proof") {
+    assert(Prover.prove(Ex3).isDefined)    
+  }  
 }
