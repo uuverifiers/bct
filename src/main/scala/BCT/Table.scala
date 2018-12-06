@@ -19,7 +19,7 @@ object Table {
   }
 }
 
-class Table(openBranches : List[Branch], closedBranches : List[Branch], model : Model = Model.EmptyModel, strong : Boolean = true) {
+class Table(openBranches : List[Branch], closedBranches : List[Branch], model : Model = Model.EmptyModel, blockingClauses : BlockingClauses = BlockingClauses.EmptyBlockingClauses, strong : Boolean = true) {
 
   // override def toString() = "<<<TABLE>>>\n" + openBranches.mkString("\n") + "\n--closed--\n" + closedBranches.mkString("\n") + "\n<<</TABLE>>>"
   override def toString() =
@@ -44,19 +44,15 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
 
 
   def closeBranches(branches : List[Branch]) = {
-    val retryModel = Branch.tryClose(branches, model)
-    if (retryModel.isDefined)
-      retryModel
-    else
-      Branch.tryClose(branches)
+    Branch.tryClose(branches, blockingClauses)
   }
 
   def close() : Option[Table] = {
     val branch = nextBranch.weak
     closeBranches(branch :: closedBranches) match {
       case None => None
-      case Some(newModel) => {
-        val closedTable = new Table(openBranches.tail, branch.closed :: closedBranches, newModel)
+      case Some((newModel, blockingClauses)) => {
+        val closedTable = new Table(openBranches.tail, branch.closed :: closedBranches, newModel, blockingClauses)
         Some(closedTable)
       }
     }
@@ -69,9 +65,9 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
     val restBranches = newBranches.take(idx) ++ newBranches.drop(idx+1)
     closeBranches(testBranch :: closedBranches) match {    
       case None => None
-      case Some(newModel) => {
+      case Some((newModel, blockingClauses)) => {
         val closedTable =
-          new Table(restBranches ++ openBranches.tail, testBranch.closed :: closedBranches, newModel)
+          new Table(restBranches ++ openBranches.tail, testBranch.closed :: closedBranches, newModel, blockingClauses)
         Some(closedTable)
       }
     }

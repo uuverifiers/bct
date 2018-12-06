@@ -12,7 +12,7 @@ object Branch {
   type FlatEquation = (String, List[Term], Term)
   type Goal = List[List[(Term, Term)]]
 
-  def tryClose(branches : List[Branch], model : Model = Model.EmptyModel) : (Option[Model]) = {
+  def tryClose(branches : List[Branch], blockingClauses : BlockingClauses) : (Option[(Model, BlockingClauses)]) = {
     val subProblems = branches.map(_.toBreu)
     if (subProblems contains None) {
       None
@@ -25,16 +25,15 @@ object Branch {
           (subGoals, subEqs)
         }
 
-      // If given a model, assign values accordingly
-      domains = domains.assign(model)
-
       val breuGoals = breuSubProblems.map(_._1)
       val breuEqs = breuSubProblems.map(_._2)
       val breuSolver = new breu.LazySolver[Term, String](() => (), 60000)
-      val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs)
+      // val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs)
+      val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, blockingClauses.blockingClauses)      
+
 
       breuProblem.solve match {
-        case breu.Result.SAT => Some(Model(breuProblem.getModel))
+        case breu.Result.SAT => Some((Model(breuProblem.getModel), BlockingClauses(breuProblem.blockingClauses)))
         case breu.Result.UNSAT | breu.Result.UNKNOWN => None
       }
     }
@@ -179,7 +178,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
     }
   }
 
-  def tryClose() = Branch.tryClose(List(this))
+  def tryClose(blockingClauses : BlockingClauses = BlockingClauses.EmptyBlockingClauses) = Branch.tryClose(List(this), blockingClauses)
 
   def extend(pl : PseudoLiteral) = {
     assert(!isClosed)

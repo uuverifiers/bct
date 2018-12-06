@@ -23,6 +23,7 @@ object Prover {
       table.close()
     } else {
       val (clause, idx) = litIdx(step-1, ex)
+      println("Extend and close w. " + clause + " idx " + idx)
       table.extendAndClose(clause, idx)
     }
   }
@@ -39,9 +40,10 @@ object Prover {
       println("\tmax depth!")
       None
     } else {
-      // Did we try every step?
       // We first try to extend the table. Then we loop over different ways of closing it. Two-level loop.
       val maxStep = (for (i <- 0 until ex.clauses) yield ex.getInputClause(i).length).sum
+
+      // Did we try every step?      
       if (step > maxStep) {
         println("\tmax step!")
         // BACKTRACK
@@ -64,25 +66,30 @@ object Prover {
     }
   }
 
-  def prove(clauses : Int) = {
+
+  def prove(ex : Example) = {
     println("Proving...")
-    val ex = Ex2
-    val table = Table(ex.getInputClause(0))
-    println(table)
-    println("\n\n\n\n")
-
-
     var result = None : Option[Table]
-    var maxDepth = 1
-    while (!result.isDefined && maxDepth < 8) {
-      result = proveTable(table, ex)(maxDepth)
-      maxDepth += 1
+    var inputClause = 0
+
+    // We have to try all input clauses
+    while (!result.isDefined && inputClause < ex.clauses) {
+      val iClause = ex.getInputClause(inputClause)
+      println("<<<Input Clause: " + iClause + ">>>")
+      val table = Table(iClause)
+      println(table)
+      var maxDepth = 1
+      while (!result.isDefined && maxDepth < 8) {
+        result = proveTable(table, ex)(maxDepth)
+        maxDepth += 1
+      }
+      inputClause += 1
     }
 
-    result match {
-      case None => println("No proof found...")
-      case Some(closedTable) => println("Proof found:\n" + closedTable.fullString())
-    }
-
+    // result match {
+    //   case None => println("No proof found...")
+    //   case Some(closedTable) => println("Proof found:\n" + closedTable.fullString())
+    // }
+    result
   }
 }
