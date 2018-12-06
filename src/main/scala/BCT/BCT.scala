@@ -1,5 +1,7 @@
 package bct
 
 object BCT extends App {
-  Prover.prove(Ex3)
+  Timer.measure("Rest") { 
+    Prover.prove(Ex1)
+  }
 }

@@ -42,7 +42,6 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
   def isClosed = openBranches.length == 0
   def nextBranch = openBranches.head
 
-
   def closeBranches(branches : List[Branch]) = {
     Branch.tryClose(branches, blockingClauses)
   }

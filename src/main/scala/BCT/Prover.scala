@@ -2,7 +2,6 @@ package bct
 
 // TODO: Insert assertions
 
-
 object Prover {
 
   // Given steps and set of clauses, return which clause and which index to use
@@ -72,20 +71,24 @@ object Prover {
     var result = None : Option[Table]
     var inputClause = 0
 
-    // We have to try all input clauses
-    while (!result.isDefined && inputClause < ex.clauses) {
-      val iClause = ex.getInputClause(inputClause)
-      println("<<<Input Clause: " + iClause + ">>>")
-      val table = Table(iClause)
-      println(table)
-      var maxDepth = 1
-      while (!result.isDefined && maxDepth < 8) {
-        result = proveTable(table, ex)(maxDepth)
-        maxDepth += 1
+    Timer.measure("Prove") {
+      // We have to try all input clauses
+      while (!result.isDefined && inputClause < ex.clauses) {
+        val iClause = ex.getInputClause(inputClause)
+        println("<<<Input Clause: " + iClause + ">>>")
+        val table = Table(iClause)
+        println(table)
+        var maxDepth = 1
+        while (!result.isDefined && maxDepth < 8) {
+          result = proveTable(table, ex)(maxDepth)
+          maxDepth += 1
+        }
+        inputClause += 1
       }
-      inputClause += 1
     }
 
+
+    println(Timer)
     // result match {
     //   case None => println("No proof found...")
     //   case Some(closedTable) => println("Proof found:\n" + closedTable.fullString())

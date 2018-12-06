@@ -32,9 +32,11 @@ object Branch {
       val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, blockingClauses.blockingClauses)      
 
 
-      breuProblem.solve match {
-        case breu.Result.SAT => Some((Model(breuProblem.getModel), BlockingClauses(breuProblem.blockingClauses)))
-        case breu.Result.UNSAT | breu.Result.UNKNOWN => None
+      Timer.measure("BREU") {
+        breuProblem.solve match {
+          case breu.Result.SAT => Some((Model(breuProblem.getModel), BlockingClauses(breuProblem.blockingClauses)))
+          case breu.Result.UNSAT | breu.Result.UNKNOWN => None
+        }
       }
     }
   }
