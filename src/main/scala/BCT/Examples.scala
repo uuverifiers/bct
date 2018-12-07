@@ -88,8 +88,8 @@ object Ex2 extends Example {
   val b = Term("b")  
   val ra = PositiveLiteral(Atom(r, List(a)))
   val nrb = NegativeLiteral(Atom(r, List(b)))
-  val aEQb = PositiveFlatEquation(a, b)
-  val aNEQb = NegativeFlatEquation(a, b)  
+  val aEQb = PositiveEquation(a, b)
+  val aNEQb = NegativeEquation(a, b)  
 
   val clauses = 2
   def clause(i : Int) =

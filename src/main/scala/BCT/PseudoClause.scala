@@ -1,15 +1,15 @@
 package bct
 
 object PseudoClause {
-  def apply(pseudoLiterals : List[PseudoLiteral]) = {
-    new PseudoClause(pseudoLiterals)
-  }
+  def apply(pl : PseudoLiteral) : PseudoClause =
+    PseudoClause(List(pl))
+
+  val EmptyPseudoClause = PseudoClause(List())
 }
 
-class PseudoClause(pseudoLiterals : List[PseudoLiteral]) extends Iterable[PseudoLiteral] {
+case class PseudoClause(pseudoLiterals : List[PseudoLiteral]) extends Iterable[PseudoLiteral] {
   override def toString() = "[" + pseudoLiterals.mkString(" v ") + "]"
 
-  def length = pseudoLiterals.length
-
-  def iterator = pseudoLiterals.iterator
+  val length = pseudoLiterals.length
+  val iterator = pseudoLiterals.iterator
 }

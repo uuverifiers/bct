@@ -1,13 +1,15 @@
 package bct
 
-object Atom {
-  def apply(predicate : String, args : List[Term]) = {
-    new Atom(predicate, args)
-  }
+//
+// Copyright 2018
+// peter.backeman@it.uu.se
+//
 
-}
 
-class Atom(val predicate : String, val args : List[Term]) {
+//
+// Represents the atoms of the problem
+//
+case class Atom(val predicate : String, val args : List[Term]) {
   override def toString() = predicate + "(" + args.mkString(",") + ")"
-  val terms = args
+  val terms = args.toSet
 }

@@ -40,7 +40,12 @@ object Prover {
       None
     } else {
       // We first try to extend the table. Then we loop over different ways of closing it. Two-level loop.
-      val maxStep = (for (i <- 0 until ex.clauses) yield ex.getInputClause(i).length).sum
+      // If we are at maximum depth, only allow step 0 (i.e., direct closing)
+      val maxStep =
+        if (table.depth == MAX_DEPTH)
+          0
+        else
+          (for (i <- 0 until ex.clauses) yield ex.getInputClause(i).length).sum
 
       // Did we try every step?      
       if (step > maxStep) {

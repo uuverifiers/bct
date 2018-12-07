@@ -9,7 +9,7 @@ object Branch {
   case class ComplementaryPair(a1 : Atom , a2 : Atom) extends Conflict
   case class InvalidEquation(t1 : Term, t2 : Term) extends Conflict
 
-  type FlatEquation = (String, List[Term], Term)
+  type Equation = (String, List[Term], Term)
   type Goal = List[List[(Term, Term)]]
 
   def tryClose(branches : List[Branch], blockingClauses : BlockingClauses) : (Option[(Model, BlockingClauses)]) = {
@@ -28,10 +28,10 @@ object Branch {
       val breuGoals = breuSubProblems.map(_._1)
       val breuEqs = breuSubProblems.map(_._2)
       val breuSolver = new breu.LazySolver[Term, String](() => (), 60000)
-      // val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs)
       val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, blockingClauses.blockingClauses)      
 
 
+      println("CALLING BREU")
       Timer.measure("BREU") {
         breuProblem.solve match {
           case breu.Result.SAT => Some((Model(breuProblem.getModel), BlockingClauses(breuProblem.blockingClauses)))
@@ -78,7 +78,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
         }
 
       val singleConflict : List[Branch.Conflict] =
-        if (n1.lit.isNegativeFlatEquation) {
+        if (n1.lit.isNegativeEquation) {
           val (lhs, rhs) = n1.terms
           List(Branch.InvalidEquation(lhs, rhs))
         } else {
@@ -93,7 +93,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
         yield Branch.ComplementaryPair(n1.atom, n2.atom)
 
       val singleConflict : List[Branch.Conflict] =
-        if (n1.lit.isNegativeFlatEquation) {
+        if (n1.lit.isNegativeEquation) {
           val (lhs, rhs) = n1.terms
           List(Branch.InvalidEquation(lhs, rhs))
         } else {
@@ -111,7 +111,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
     }).flatten
   }
 
-  lazy val equations = pseudoLiterals.map(_.lit).filter(_.isPositiveFlatEquation)
+  lazy val equations = pseudoLiterals.map(_.lit).filter(_.isPositiveEquation)
 
   lazy val order = {
     import scala.collection.mutable.ListBuffer
@@ -123,7 +123,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
     }
     
     for (pl <- pseudoLiterals.reverse) {
-      for (feq <- pl.funs) {
+      for (feq <- pl.funEquations) {
         for (a <- feq.args)
           add(a)
         add(feq.res)
@@ -136,7 +136,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
     new Order(tmpOrder.toList)
   }
 
-  lazy val toBreu : Option[(Domains, List[Branch.FlatEquation], Branch.Goal)] = {
+  lazy val toBreu : Option[(Domains, List[Branch.Equation], Branch.Goal)] = {
     if (conflicts.length == 0) {
       None
     } else {
@@ -164,7 +164,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
 
       var nextDummyPredicate = 0
       val breuFlatEqs1 =
-        (for (PositiveFlatEquation(lhs, rhs) <- eqs) yield {
+        (for (PositiveEquation(lhs, rhs) <- eqs) yield {
           nextDummyPredicate += 1
           List(("dummy_predicate_" + nextDummyPredicate, List(), lhs), ("dummy_predicate_" + nextDummyPredicate, List(), rhs))
         }).flatten
