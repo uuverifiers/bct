@@ -13,7 +13,6 @@ object Prover {
   }
 
 
-
   // Input: One branch and one step
   // Output: If step is not applicable, None, else a tuple with the branch closed and new open branches
   def handleStep(table: Table, step : Int, branch : Branch, ex : Example) : Option[Table] = {

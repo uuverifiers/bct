@@ -7,11 +7,11 @@ class BCTSpec extends FunSuite with DiagrammedAssertions {
     assert(Prover.prove(Ex1).isDefined)
   }
 
-  // test ("Ex2 should find proof") {
-  //   assert(Prover.prove(Ex2).isDefined)    
-  // }
+  test ("Ex2 should find proof") {
+    assert(Prover.prove(Ex2).isDefined)    
+  }
 
-  // test ("Ex3 should find proof") {
-  //   assert(Prover.prove(Ex3).isDefined)    
-  // }  
+  test ("Ex3 should find proof") {
+    assert(Prover.prove(Ex3).isDefined)    
+  }  
 }

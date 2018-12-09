@@ -34,8 +34,8 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
   val isClosed = openBranches.length == 0
   lazy val nextBranch = openBranches.head
 
-  def closeBranches(branches : List[Branch]) = {
-    Branch.tryClose(branches, blockingConstraints)
+  def closeBranches(branches : List[Branch], extraBlockingConstraints : BlockingConstraints = BlockingConstraints.Empty) = {
+    Branch.tryClose(branches, blockingConstraints ++ extraBlockingConstraints)
   }
 
   def close() : Option[Table] = {
@@ -54,7 +54,19 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
     val newBranches = (for (pl <- clause) yield branch.extend(pl)).toList
     val testBranch = newBranches(idx)
     val restBranches = newBranches.take(idx) ++ newBranches.drop(idx+1)
-    closeBranches(testBranch :: closedBranches) match {    
+
+    // Extract regularity constraints
+    // I.e., if the newly added head of a branch is similar in structure to a previous,
+    // at least one of the literals must differ (i.e. a negative blocking clause)
+    // val regularityConstraints : BlockingConstraints =  BlockingConstraints((for (b <- restBranches) yield b.regularityConstraints).flatten)
+    val regularityConstraints : BlockingConstraints =  BlockingConstraints(testBranch.regularityConstraints)
+
+    // println("REST BRANCHES")
+    // println(restBranches.mkString("\n"))
+    // println("REGULARITY")
+    // println(regularityConstraints.mkString("\n"))
+
+    closeBranches(testBranch :: closedBranches, regularityConstraints) match {    
       case None => None
       case Some((newModel, blockingConstraints)) => {
         val closedTable =

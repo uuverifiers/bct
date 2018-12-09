@@ -27,9 +27,20 @@ object Branch {
 
       val breuGoals = breuSubProblems.map(_._1)
       val breuEqs = breuSubProblems.map(_._2)
-      val breuSolver = new breu.LazySolver[Term, String](() => (), 60000)
+      val breuSolver = new breu.LazySolver[Term, String](() => (), 60000, true)
       val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
+      println("domains")
+      println(domains.domains)
+      println("goals")
+      println(breuGoals)
+      println("eqs")
+      println(breuEqs)
+      println("posbc")
+      println(posBlockingClauses)
+      println("negbc")
+      println(negBlockingClauses)
       val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, negBlockingClauses)
+      // val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, List())      
 
       Timer.measure("BREU") {
         breuProblem.solve match {
@@ -182,5 +193,11 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean =
     Branch(pl :: pseudoLiterals, isClosed, strong)
   }
 
-  
+
+  lazy val regularityConstraints : List[Constraint] = {
+    val h = pseudoLiterals.head
+
+    for (pl <- pseudoLiterals.tail; if (h.lit.regularityConstraint(pl.lit).isDefined))
+    yield h.lit.regularityConstraint(pl.lit).get
+  }
 }

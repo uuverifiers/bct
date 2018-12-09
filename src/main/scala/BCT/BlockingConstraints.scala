@@ -20,6 +20,10 @@ object BlockingConstraints {
 
 case class BlockingConstraints(val blockingConstraints : List[Constraint]) {
 
+  def ++(that : BlockingConstraints) = {
+    BlockingConstraints(blockingConstraints ++ that.blockingConstraints)
+  }
+
   // TODO: This is for legacy BREU
   def toBlockingClauses() = {
     val posBC = ListBuffer() : ListBuffer[List[(Term, Term)]]

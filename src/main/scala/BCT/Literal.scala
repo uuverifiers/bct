@@ -10,6 +10,16 @@ abstract class Literal {
   val isNegativeEquation = false
   val isPositiveEquation = false
   val terms : Set[Term]
+
+  def regularityConstraint(that : Literal) : Option[Constraint] = {
+    (this, that) match {
+      case (PositiveLiteral(a1), PositiveLiteral(a2)) if (a1.predicate == a2.predicate) => Some(NegativeConstraint(a1.args zip a2.args))
+      case (NegativeLiteral(a1), NegativeLiteral(a2)) if (a1.predicate == a2.predicate) => Some(NegativeConstraint(a1.args zip a2.args))
+      case (PositiveEquation(lhs1, rhs1), PositiveEquation(lhs2, rhs2)) => Some(NegativeConstraint(List((lhs1, lhs2), (rhs1, rhs2))))
+      case (NegativeEquation(lhs1, rhs1), NegativeEquation(lhs2, rhs2)) => Some(NegativeConstraint(List((lhs1, lhs2), (rhs1, rhs2))))
+      case _ => None
+    }
+  }
 }
 
 case class PositiveLiteral(atom : Atom) extends Literal {
