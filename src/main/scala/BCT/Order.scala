@@ -7,7 +7,7 @@ import scala.collection.immutable.{Set, Map}
 // (i.e. can take the value of all smaller or equal terms.
 
 
-class Order(val terms_ : List[(Term)]) {
+case class Order(val terms_ : List[(Term)]) {
   // TODO: Here we are inserting dummy-element!
   val terms = Term(9775.toChar.toString, false) :: terms_
 

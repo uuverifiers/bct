@@ -5,13 +5,15 @@ object Domains {
     new Domains(domains)
   }
 
-  val EmptyDomains = new Domains(Map())
+  val Empty = new Domains(Map())
 }
 
 
-class Domains(val domains : Map[Term, Set[Term]]) {
+case class Domains(val domains : Map[Term, Set[Term]]) {
 
   override def toString() = domains.toString()
+
+  def apply(t : Term) = domains(t)
 
   def extend(that : Domains) = {
     import scala.collection.mutable.{Map => MMap}
@@ -24,16 +26,5 @@ class Domains(val domains : Map[Term, Set[Term]]) {
     }
 
     Domains(newMap.toMap)
-  }
-
-  def assign(model : Model) = {
-    val newDomains = 
-      for ((k, v) <- domains) yield {
-        if (model.contains(k))
-          k -> Set(model(k))
-        else
-          k -> v
-      }
-    Domains(newDomains)
   }
 }

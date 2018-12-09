@@ -2,24 +2,16 @@ package bct
 
 object Table {
   def apply(branches : List[Branch]) = {
-    // implicit val bOrd = BranchOrdering
-    // val pQ = PriorityQueue[Branch]()
-    // for (b <- branches)
-    //   pQ.enqueue(b)
     new Table(branches, List())
   }
 
   def apply(cls : PseudoClause) = {
-    // implicit val bOrd = BranchOrdering
-    // val pQ = PriorityQueue[Branch]()
-    // for (l <- cls) 
-    //   pQ.enqueue(Branch(List(l)))
     val branches = (for (l <- cls) yield Branch(List(l))).toList
     new Table(branches, List())
   }
 }
 
-class Table(openBranches : List[Branch], closedBranches : List[Branch], model : Model = Model.EmptyModel, blockingClauses : BlockingClauses = BlockingClauses.EmptyBlockingClauses, strong : Boolean = true) {
+class Table(openBranches : List[Branch], closedBranches : List[Branch], model : Model = Model.EmptyModel, blockingConstraints : BlockingConstraints = BlockingConstraints.Empty, strong : Boolean = true) {
 
   // override def toString() = "<<<TABLE>>>\n" + openBranches.mkString("\n") + "\n--closed--\n" + closedBranches.mkString("\n") + "\n<<</TABLE>>>"
   override def toString() =
@@ -37,21 +29,21 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
   "\n<<</TABLE>>>"    
   
 
-  def length = openBranches.length + closedBranches.length
-  def depth = openBranches.map(_.depth).max
-  def isClosed = openBranches.length == 0
-  def nextBranch = openBranches.head
+  val length = openBranches.length + closedBranches.length
+  val depth = if (openBranches.isEmpty) 0 else openBranches.map(_.depth).max
+  val isClosed = openBranches.length == 0
+  lazy val nextBranch = openBranches.head
 
   def closeBranches(branches : List[Branch]) = {
-    Branch.tryClose(branches, blockingClauses)
+    Branch.tryClose(branches, blockingConstraints)
   }
 
   def close() : Option[Table] = {
     val branch = nextBranch.weak
     closeBranches(branch :: closedBranches) match {
       case None => None
-      case Some((newModel, blockingClauses)) => {
-        val closedTable = new Table(openBranches.tail, branch.closed :: closedBranches, newModel, blockingClauses)
+      case Some((newModel, blockingConstraints)) => {
+        val closedTable = new Table(openBranches.tail, branch.closed :: closedBranches, newModel, blockingConstraints)
         Some(closedTable)
       }
     }
@@ -64,9 +56,9 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
     val restBranches = newBranches.take(idx) ++ newBranches.drop(idx+1)
     closeBranches(testBranch :: closedBranches) match {    
       case None => None
-      case Some((newModel, blockingClauses)) => {
+      case Some((newModel, blockingConstraints)) => {
         val closedTable =
-          new Table(restBranches ++ openBranches.tail, testBranch.closed :: closedBranches, newModel, blockingClauses)
+          new Table(restBranches ++ openBranches.tail, testBranch.closed :: closedBranches, newModel, blockingConstraints)
         Some(closedTable)
       }
     }

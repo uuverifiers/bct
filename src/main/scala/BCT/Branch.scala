@@ -12,12 +12,12 @@ object Branch {
   type Equation = (String, List[Term], Term)
   type Goal = List[List[(Term, Term)]]
 
-  def tryClose(branches : List[Branch], blockingClauses : BlockingClauses) : (Option[(Model, BlockingClauses)]) = {
+  def tryClose(branches : List[Branch], blockingConstraints : BlockingConstraints) : (Option[(Model, BlockingConstraints)]) = {
     val subProblems = branches.map(_.toBreu)
     if (subProblems contains None) {
       None
     } else {
-      var domains = Domains.EmptyDomains
+      var domains = Domains.Empty
       val breuSubProblems = 
         for (sp <- subProblems) yield {
           val (subDomains, subEqs, subGoals) = sp.get
@@ -28,13 +28,16 @@ object Branch {
       val breuGoals = breuSubProblems.map(_._1)
       val breuEqs = breuSubProblems.map(_._2)
       val breuSolver = new breu.LazySolver[Term, String](() => (), 60000)
-      val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, blockingClauses.blockingClauses)      
+      val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
+      val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, negBlockingClauses)
 
-
-      println("CALLING BREU")
       Timer.measure("BREU") {
         breuProblem.solve match {
-          case breu.Result.SAT => Some((Model(breuProblem.getModel), BlockingClauses(breuProblem.blockingClauses)))
+          case breu.Result.SAT => {
+            val positiveConstraints = for (bc <- breuProblem.positiveBlockingClauses) yield PositiveConstraint(bc)
+            val negativeConstraints = for (bc <- breuProblem.negativeBlockingClauses) yield NegativeConstraint(bc)
+            Some((Model(breuProblem.getModel), BlockingConstraints(positiveConstraints ++ negativeConstraints)))
+          }
           case breu.Result.UNSAT | breu.Result.UNKNOWN => None
         }
       }
@@ -43,15 +46,7 @@ object Branch {
 }
 
 
-object BranchOrdering extends Ordering[Branch] {
-  def compare(x : Branch, y : Branch) = {
-    x.length.compare(y.length)
-  }
-}
-
-
-
-class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = false, strong : Boolean = true) {
+case class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = false, strong : Boolean = true) {
   assert(pseudoLiterals.length > 0)
   def length = pseudoLiterals.length
   def depth = pseudoLiterals.length
@@ -180,7 +175,7 @@ class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = fals
     }
   }
 
-  def tryClose(blockingClauses : BlockingClauses = BlockingClauses.EmptyBlockingClauses) = Branch.tryClose(List(this), blockingClauses)
+  def tryClose(blockingConstraints : BlockingConstraints = BlockingConstraints.Empty) = Branch.tryClose(List(this), blockingConstraints)
 
   def extend(pl : PseudoLiteral) = {
     assert(!isClosed)

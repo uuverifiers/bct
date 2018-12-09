@@ -34,6 +34,7 @@ object Timer {
   def measure[A](op : String)(comp : => A) : A = {
     addTime
     callCounters += (op -> (callCounters(op) + 1))
+    println("PUSHING : " + op)
     runningOps push op
     
     val res =

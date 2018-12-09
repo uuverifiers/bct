@@ -62,7 +62,9 @@ object Prover {
             println(nextTable.fullString())
             proveTable(nextTable, ex, 0, step::steps) match {
               case None => proveTable(table, ex, step + 1,steps)
-              case closedTable => closedTable
+              case closedTable => {
+                closedTable
+              }
             }
           }
         }
@@ -92,7 +94,7 @@ object Prover {
       }
     }
 
-
+    println(">>>")
     println(Timer)
     // result match {
     //   case None => println("No proof found...")
