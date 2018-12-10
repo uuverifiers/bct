@@ -22,6 +22,15 @@ abstract class Literal {
   }
 }
 
+case object True extends Literal {
+  val terms = Set()
+}
+
+case object False extends Literal{
+  val terms = Set()
+}
+
+
 case class PositiveLiteral(atom : Atom) extends Literal {
   override def toString() = atom.toString()
   override val terms = atom.terms
