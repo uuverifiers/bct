@@ -148,16 +148,19 @@ object Parser {
   }
 
   def tptp2Internal(fileName : String) = {
+    try {
+      val reader = new java.io.BufferedReader (
+        new java.io.FileReader(new java.io.File (fileName)))
 
-    val reader = new java.io.BufferedReader (
-      new java.io.FileReader(new java.io.File (fileName)))
+      val settings = Param.BOOLEAN_FUNCTIONS_AS_PREDICATES.set(ParserSettings.DEFAULT, true)
 
-    val settings = Param.BOOLEAN_FUNCTIONS_AS_PREDICATES.set(ParserSettings.DEFAULT, true)
+      val (formula, list, signature) = new TPTPTParser(new Environment, settings)(reader)
 
-    val (formula, list, signature) = new TPTPTParser(new Environment, settings)(reader)
-
-    allCount = -1
-    exCount = -1
-    formula2Internal(formula)
+      allCount = -1
+      exCount = -1
+      Some(formula2Internal(formula))
+    } catch {
+      case e : java.io.FileNotFoundException =>  None
+    }
   }
 }

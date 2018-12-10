@@ -16,4 +16,10 @@ case class Term(val term : String, val isUniversal : Boolean = false) {
     else
       8707.toChar.toString + term
   }
+
+  def copy(suffix : String) =
+    if (isUniversal)
+      Term(term + "$" + suffix, isUniversal)
+    else
+      this
 }

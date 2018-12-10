@@ -33,4 +33,6 @@ case class PseudoLiteral (val funEquations : List[FunEquation], val lit : Litera
 
   def isComplementary(that : PseudoLiteral) =
     lit.isComplementary(that.lit)
+
+  def copy(suffix : String) = PseudoLiteral(for (feq <- funEquations) yield feq.copy(suffix), lit.copy(suffix))
 }

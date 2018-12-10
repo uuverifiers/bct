@@ -12,4 +12,8 @@ case class PseudoClause(pseudoLiterals : List[PseudoLiteral]) extends Iterable[P
 
   val length = pseudoLiterals.length
   val iterator = pseudoLiterals.iterator
+
+  def copy(suffix : String) = {
+    PseudoClause(pseudoLiterals.map(_.copy(suffix)))
+  }
 }

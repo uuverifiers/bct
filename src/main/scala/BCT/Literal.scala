@@ -11,6 +11,8 @@ abstract class Literal {
   val isPositiveEquation = false
   val terms : Set[Term]
 
+  def copy(suffix : String) : Literal
+
   def regularityConstraint(that : Literal) : Option[Constraint] = {
     (this, that) match {
       case (PositiveLiteral(a1), PositiveLiteral(a2)) if (a1.predicate == a2.predicate) => Some(NegativeConstraint(a1.args zip a2.args))
@@ -24,10 +26,12 @@ abstract class Literal {
 
 case object True extends Literal {
   val terms = Set()
+  override def copy(suffix : String) = this
 }
 
 case object False extends Literal{
   val terms = Set()
+  override def copy(suffix : String) = this
 }
 
 
@@ -40,6 +44,8 @@ case class PositiveLiteral(atom : Atom) extends Literal {
       case _ => false
     }
   }
+  override def copy(suffix : String) = PositiveLiteral(atom.copy(suffix))
+
 }
 
 case class NegativeLiteral(atom : Atom) extends Literal {
@@ -52,16 +58,19 @@ case class NegativeLiteral(atom : Atom) extends Literal {
       case _ => false
     }
   }
+  override def copy(suffix : String) = NegativeLiteral(atom.copy(suffix))  
 }
 
 case class PositiveEquation(lhs : Term, rhs : Term) extends Literal {
   override def toString() = lhs + " = " + rhs
   override val isPositiveEquation = true
   override val terms = Set(lhs, rhs)
+  override def copy(suffix : String) = PositiveEquation(lhs.copy(suffix), rhs.copy(suffix))
 }
 
 case class NegativeEquation(lhs : Term, rhs : Term) extends Literal {
   override def toString() = lhs + " != " + rhs
   override val isNegativeEquation = true
-  override val terms = Set(lhs, rhs)  
+  override val terms = Set(lhs, rhs)
+  override def copy(suffix : String) = NegativeEquation(lhs.copy(suffix), rhs.copy(suffix))  
 }

@@ -13,12 +13,7 @@ object Table {
 
 class Table(openBranches : List[Branch], closedBranches : List[Branch], model : Model = Model.EmptyModel, blockingConstraints : BlockingConstraints = BlockingConstraints.Empty, strong : Boolean = true) {
 
-  // override def toString() = "<<<TABLE>>>\n" + openBranches.mkString("\n") + "\n--closed--\n" + closedBranches.mkString("\n") + "\n<<</TABLE>>>"
-  override def toString() =
-    "<<<TABLE>>>\n" +
-  openBranches.mkString("\n") + "\n" +
-  // model + 
-  "\n<<</TABLE>>>"
+  override def toString() = "<<<TABLE>>>\n" + openBranches.mkString("\n") + "\n--closed--\n" + closedBranches.mkString("\n") + "\n<<</TABLE>>>"
 
   def fullString() =
     "<<<TABLE>>>\n" +

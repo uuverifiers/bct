@@ -12,4 +12,5 @@ package bct
 case class Atom(val predicate : String, val args : List[Term]) {
   override def toString() = predicate + "(" + args.mkString(",") + ")"
   val terms = args.toSet
+  def copy(suffix : String) = Atom(predicate, args.map(_.copy(suffix)))
 }

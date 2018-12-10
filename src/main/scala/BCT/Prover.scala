@@ -3,39 +3,46 @@ package bct
 // TODO: Insert assertions
 
 object Prover {
+  var debug = false
 
+  def dprint(str : String) =
+    if (debug) print(str)
+
+  def dprintln(str : String) = dprint(str + "\n")
   // Given steps and set of clauses, return which clause and which index to use
-  def litIdx(step : Int, ex : Example, clauseIdx : Int = 0) : (PseudoClause, Int) = {
-    if (step < ex.getInputClause(clauseIdx).length)
-      (ex.getInputClause(clauseIdx), step)
+  def litIdx(step : Int, inputClauses : List[PseudoClause], clauseIdx : Int = 0) : (PseudoClause, Int) = {
+    if (step < inputClauses(clauseIdx).length)
+      (inputClauses(clauseIdx), step)
     else
-      litIdx(step - ex.getInputClause(clauseIdx).length, ex, clauseIdx+1)
+      litIdx(step - inputClauses(clauseIdx).length, inputClauses, clauseIdx+1)
   }
 
 
   // Input: One branch and one step
   // Output: If step is not applicable, None, else a tuple with the branch closed and new open branches
-  def handleStep(table: Table, step : Int, branch : Branch, ex : Example) : Option[Table] = {
+  def handleStep(table: Table, step : Int, branch : Branch, inputClauses : List[PseudoClause], tableStep : Int) : Option[Table] = {
     // Convert step to Closer
     if (step == 0) {
+      dprintln("\tclose()")
       table.close()
     } else {
-      val (clause, idx) = litIdx(step-1, ex)
-      println("Extend and close w. " + clause + " idx " + idx)
-      table.extendAndClose(clause, idx)
+      val (clause, idx) = litIdx(step-1, inputClauses)
+      val copiedClause = clause.copy(tableStep.toString)
+      dprintln("Extend and close w. " + copiedClause + " idx " + idx)
+      table.extendAndClose(copiedClause, idx)
     }
   }
 
 
   var PROVE_TABLE_STEP = 0
-  def proveTable(table : Table, ex : Example, step : Int = 0, steps : List[Int] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
-    println("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
+  def proveTable(table : Table, inputClauses : List[PseudoClause], step : Int = 0, steps : List[Int] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
+    dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
     PROVE_TABLE_STEP += 1
     if (table.isClosed) {
-      println("\tClosed!")
+      dprintln("\tClosed!")
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
-      println("\tmax depth!")
+      dprintln("\tmax depth!")
       None
     } else {
       // We first try to extend the table. Then we loop over different ways of closing it. Two-level loop.
@@ -44,23 +51,23 @@ object Prover {
         if (table.depth == MAX_DEPTH)
           0
         else
-          (for (i <- 0 until ex.clauses) yield ex.getInputClause(i).length).sum
+          inputClauses.map(_.length).sum
 
       // Did we try every step?      
       if (step > maxStep) {
-        println("\tmax step!")
+        dprintln("\tmax step (" + maxStep + ")!")
         // BACKTRACK
         None
       } else {
         // Extract open branch:
         val branch = table.nextBranch
         // Let's find a conflict
-        handleStep(table, step, branch, ex) match {
-          case None => proveTable(table, ex, step + 1, steps)
+        handleStep(table, step, branch, inputClauses, PROVE_TABLE_STEP) match {
+          case None => proveTable(table, inputClauses, step + 1, steps)
           case Some(nextTable) => {
-            println(nextTable.fullString())
-            proveTable(nextTable, ex, 0, step::steps) match {
-              case None => proveTable(table, ex, step + 1,steps)
+            dprintln(nextTable.fullString())
+            proveTable(nextTable, inputClauses, 0, step::steps) match {
+              case None => proveTable(table, inputClauses, step + 1,steps)
               case closedTable => {
                 closedTable
               }
@@ -72,33 +79,44 @@ object Prover {
   }
 
 
-  def prove(ex : Example) = {
+  def prove(inputClauses : List[PseudoClause], debug : Boolean = false) = {
     println("Proving...")
     var result = None : Option[Table]
     var inputClause = 0
 
+    if (debug) {
+      val maxStep = inputClauses.map(_.length).sum
+      for (step <- 0 to maxStep) {
+        val str =
+          if (step == 0) {
+            "close()"
+          } else {
+            val (clause, idx) = litIdx(step-1, inputClauses)
+            val copiedClause = clause.copy("...")
+            "Extend and close w. " + copiedClause + " idx " + idx
+          }
+        println(step + "\t" + str)
+      }
+    }
+
     Timer.measure("Prove") {
       // We have to try all input clauses
-      while (!result.isDefined && inputClause < ex.clauses) {
-        val iClause = ex.getInputClause(inputClause)
-        println("<<<Input Clause: " + iClause + ">>>")
+      while (!result.isDefined && inputClause < inputClauses.length) {
+        val iClause = inputClauses(inputClause)
+        dprintln("<<<Input Clause: " + iClause + ">>>")
         val table = Table(iClause)
-        println(table)
-        var maxDepth = 1
+        dprintln(table.toString)
+        var maxDepth = 3
         while (!result.isDefined && maxDepth < 8) {
-          result = proveTable(table, ex)(maxDepth)
+          result = proveTable(table, inputClauses)(maxDepth)
           maxDepth += 1
         }
         inputClause += 1
       }
     }
 
-    println(">>>")
-    println(Timer)
-    // result match {
-    //   case None => println("No proof found...")
-    //   case Some(closedTable) => println("Proof found:\n" + closedTable.fullString())
-    // }
+
+    dprintln(Timer.toString)
     result
   }
 }
