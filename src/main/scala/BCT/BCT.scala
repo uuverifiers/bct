@@ -1,21 +1,75 @@
 package bct
 
 import scala.collection.mutable.Map
-
+import java.io.File 
 object BCT extends App {
   // Timer.measure("Rest") {
   //   Prover.prove(Ex1)
   // }
 
-  val problems = List("SYN003-1.006.p", "SYN008-1.p", "SYN009-1.p", "SYN009-2.p")
-  val times = Map() : Map[String, Long]
-  val exceptions = Map() : Map[String, String]
-  val results = Map () : Map[String, String]
-  for (problem <- problems) {
-    val fileName = "Problems/SYN/" + problem
-    Parser.tptp2Internal(fileName) match {
-      case None => println("File \"" + fileName + "\" not found.")
+
+  def testDir() = {
+
+    val directory = new File("Problems/subSYN")
+
+    val problems = directory.listFiles.map(_.toString).filter(_.contains("-")).filter(_.endsWith(".p"))
+    val problemCount = problems.length
+
+    val times = Map() : Map[String, Long]
+    val exceptions = Map() : Map[String, String]
+    val results = Map () : Map[String, String]
+    var no = 0
+    for (problem <- problems) {
+      no += 1
+      println(problem + "(" + no + "/" + problemCount + ")")
+      Parser.tptp2Internal(problem) match {
+        case None => println("File \"" + problem + "\" not found.")
+        case Some(pseudoClauses) => {
+          println("Parsed")
+          println("PseudoClauses:")
+          for (pc <- pseudoClauses) {
+            println(pc)
+          }
+
+          val start = System.currentTimeMillis
+          try {
+            Timer.measure("Prove") {
+              Prover.prove(pseudoClauses, 5000) match {
+                case None => {
+                  results += problem -> "none"
+                  println("No proof found...")
+                }
+                case Some(table) => {
+                  results += problem -> "some"
+                  println(table)
+                }
+              }
+            }
+          } catch {
+            case e : Exception => exceptions += problem -> e.toString
+          }
+          
+          val stop = System.currentTimeMillis
+          println(Timer)
+          times += problem -> (stop - start)
+        }
+      }
+    }
+
+    for (p <- problems) {
+      println("<<<" + p + ">>>")
+      println(exceptions.getOrElse(p, "No exceptions"))
+      println(results.getOrElse(p, "No result"))
+      println(times(p))
+    }
+  }
+
+  def testFile() = {
+    val problem = "Problems/subSYN/SYN001-1.005.p"
+    Parser.tptp2Internal(problem) match {
+      case None => println("File \"" + problem + "\" not found.")
       case Some(pseudoClauses) => {
+        println("Parsed")
         println("PseudoClauses:")
         for (pc <- pseudoClauses) {
           println(pc)
@@ -24,32 +78,25 @@ object BCT extends App {
         val start = System.currentTimeMillis
         try {
           Timer.measure("Prove") {
-            Prover.prove(pseudoClauses) match {
+            Prover.prove(pseudoClauses, 60000) match {
               case None => {
-                results += problem -> "none"
                 println("No proof found...")
               }
               case Some(table) => {
-                results += problem -> "some"
                 println(table)
               }
             }
           }
         } catch {
-          case e : Exception => exceptions += problem -> e.toString
+          case e : Exception => println("Exception: " + e)
         }
         
         val stop = System.currentTimeMillis
         println(Timer)
-        times += problem -> (stop - start)
+        println((stop - start) + "ms")
       }
     }
   }
 
-  for (p <- problems) {
-    println("<<<" + p + ">>>")
-    println(exceptions.getOrElse(p, "No exceptions"))
-    println(results.getOrElse(p, "No result"))
-    println(times(p))
-  }
+  testFile()
 }

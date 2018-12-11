@@ -4,9 +4,12 @@ package bct
 
 object Prover {
   var debug = false
+  var startTime : Long = 0
+  var timeoutReached = false
 
   def dprint(str : String) =
     if (debug) print(str)
+
 
   def dprintln(str : String) = dprint(str + "\n")
   // Given steps and set of clauses, return which clause and which index to use
@@ -35,10 +38,13 @@ object Prover {
 
 
   var PROVE_TABLE_STEP = 0
-  def proveTable(table : Table, inputClauses : List[PseudoClause], step : Int = 0, steps : List[Int] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
+  def proveTable(table : Table, inputClauses : List[PseudoClause], timeout : Long, step : Int = 0, steps : List[Int] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
     dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
     PROVE_TABLE_STEP += 1
-    if (table.isClosed) {
+    if (System.currentTimeMillis - startTime > timeout) {
+      timeoutReached = true
+      None
+    } else if (table.isClosed) {
       dprintln("\tClosed!")
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
@@ -63,11 +69,11 @@ object Prover {
         val branch = table.nextBranch
         // Let's find a conflict
         handleStep(table, step, branch, inputClauses, PROVE_TABLE_STEP) match {
-          case None => proveTable(table, inputClauses, step + 1, steps)
+          case None => proveTable(table, inputClauses, timeout, step + 1, steps)
           case Some(nextTable) => {
             dprintln(nextTable.fullString())
-            proveTable(nextTable, inputClauses, 0, step::steps) match {
-              case None => proveTable(table, inputClauses, step + 1,steps)
+            proveTable(nextTable, inputClauses, timeout, 0, step::steps) match {
+              case None => proveTable(table, inputClauses, timeout, step + 1, steps)
               case closedTable => {
                 closedTable
               }
@@ -79,7 +85,8 @@ object Prover {
   }
 
 
-  def prove(inputClauses : List[PseudoClause], debug : Boolean = false) = {
+  def prove(inputClauses : List[PseudoClause], timeout : Long, debug_ : Boolean = false) = {
+    debug = debug_
     println("Proving...")
     var result = None : Option[Table]
     var inputClause = 0
@@ -99,6 +106,9 @@ object Prover {
       }
     }
 
+    startTime = System.currentTimeMillis
+    timeoutReached = false
+
     Timer.measure("Prove") {
       // We have to try all input clauses
       while (!result.isDefined && inputClause < inputClauses.length) {
@@ -108,7 +118,7 @@ object Prover {
         dprintln(table.toString)
         var maxDepth = 3
         while (!result.isDefined && maxDepth < 8) {
-          result = proveTable(table, inputClauses)(maxDepth)
+          result = proveTable(table, inputClauses, timeout)(maxDepth)
           maxDepth += 1
         }
         inputClause += 1
@@ -117,6 +127,8 @@ object Prover {
 
 
     dprintln(Timer.toString)
+    if (timeoutReached)
+      println("TIMEOUT")
     result
   }
 }

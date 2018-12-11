@@ -126,6 +126,9 @@ object Parser {
           formula2Internal(subFormula)
         }
 
+        case INot(IBoolLit(true)) => List(PseudoClause(PseudoLiteral(False)))
+        case INot(IBoolLit(false)) => List(PseudoClause(PseudoLiteral(True)))          
+
 
         case IBinFormula(IBinJunctor.Or, f1, f2) => {
           val if1 =

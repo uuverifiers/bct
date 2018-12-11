@@ -29,18 +29,22 @@ object Branch {
       val breuEqs = breuSubProblems.map(_._2)
       val breuSolver = new breu.LazySolver[Term, String](() => (), 60000)
       val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
-      val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, negBlockingClauses)
-      // val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, List())      
+      try {
+        val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, negBlockingClauses)
+      // val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, List())      p
 
-      Timer.measure("BREU") {
-        breuProblem.solve match {
-          case breu.Result.SAT => {
-            val positiveConstraints = for (bc <- breuProblem.positiveBlockingClauses) yield PositiveConstraint(bc)
-            val negativeConstraints = for (bc <- breuProblem.negativeBlockingClauses) yield NegativeConstraint(bc)
-            Some((Model(breuProblem.getModel), BlockingConstraints(positiveConstraints ++ negativeConstraints)))
+        Timer.measure("BREU") {
+          breuProblem.solve match {
+            case breu.Result.SAT => {
+              val positiveConstraints = for (bc <- breuProblem.positiveBlockingClauses) yield PositiveConstraint(bc)
+              val negativeConstraints = for (bc <- breuProblem.negativeBlockingClauses) yield NegativeConstraint(bc)
+              Some((Model(breuProblem.getModel), BlockingConstraints(positiveConstraints ++ negativeConstraints)))
+            }
+            case breu.Result.UNSAT | breu.Result.UNKNOWN => None
           }
-          case breu.Result.UNSAT | breu.Result.UNKNOWN => None
         }
+      } catch {
+        case e : Exception => None
       }
     }
   }
