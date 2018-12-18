@@ -1,103 +1,137 @@
+
 package bct
 
 object Branch {
-  def apply(pseudoLiterals : List[PseudoLiteral], isClosed : Boolean = false, strong : Boolean = true) = {
-    new Branch(pseudoLiterals, isClosed, strong)
+  def apply(pseudoLiteral : PseudoLiteral, strong : Boolean) : Branch = {
+    Branch(List(pseudoLiteral), pseudoLiteral.order, false)(strong)
   }
 
+  def apply(pseudoLiterals : List[PseudoLiteral], strong : Boolean) : Branch = {
+    Branch(pseudoLiterals, Order.combineOrders(pseudoLiterals.map(_.order).reverse), false)(strong)
+  }  
+
   class Conflict
-  case class ComplementaryPair(a1 : Atom , a2 : Atom) extends Conflict
-  case class InvalidEquation(t1 : Term, t2 : Term) extends Conflict
+  case class ComplementaryPair(a1 : Atom , a2 : Atom) extends Conflict {
+    override def toString() = {
+      "C[" + (for ((t1, t2) <- a1.args zip a2.args) yield (t1 + " != " + t2)).mkString(", ") + "]"
+    }
+  }
+  case class InvalidEquation(t1 : Term, t2 : Term) extends Conflict {
+    override def toString() = {
+      "C[" + t1 + " != " + t2 + "]"
+    }
+  }
 
   type Equation = (String, List[Term], Term)
   type Goal = List[List[(Term, Term)]]
 
-  def tryClose(branches : List[Branch], blockingConstraints : BlockingConstraints) : (Option[(Model, BlockingConstraints)]) = {
+  def tryClose(testBranch : Branch, branches : List[Branch], blockingConstraints : BlockingConstraints, maxTime : Long) : (Option[(Model, Model, BlockingConstraints)]) = {
+    val testProblem = testBranch.toBreu
     val subProblems = branches.map(_.toBreu)
-    if (subProblems contains None) {
+    if ((testProblem :: subProblems) contains None) {
       None
     } else {
       var domains = Domains.Empty
       val breuSubProblems = 
-        for (sp <- subProblems) yield {
+        for (sp <- testProblem :: subProblems) yield {
           val (subDomains, subEqs, subGoals) = sp.get
           domains = domains.extend(subDomains)
           (subGoals, subEqs)
         }
 
+      val relTerms = testBranch.head.terms
+
       val breuGoals = breuSubProblems.map(_._1)
       val breuEqs = breuSubProblems.map(_._2)
-      val breuSolver = new breu.LazySolver[Term, String](() => (), 60000)
+      val breuSolver = new breu.LazySolver[Term, String]()
       val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
+      // val (posBlockingClauses, negBlockingClauses) = (List(), List())
       try {
         val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, negBlockingClauses)
-      // val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, List())      p
+        D.dprintln(breuProblem.toString)
+        if (D.debug) {
+          D.breuCount += 1
+          breuProblem.saveToFile("BREU_PROBLEMS/" + D.breuCount + ".breu")
+        }
+      // val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, List())     
 
         Timer.measure("BREU") {
-          breuProblem.solve match {
+          breuProblem.solve(maxTime) match {
             case breu.Result.SAT => {
               val positiveConstraints = for (bc <- breuProblem.positiveBlockingClauses) yield PositiveConstraint(bc)
               val negativeConstraints = for (bc <- breuProblem.negativeBlockingClauses) yield NegativeConstraint(bc)
-              Some((Model(breuProblem.getModel), BlockingConstraints(positiveConstraints ++ negativeConstraints)))
+              val model = breuProblem.getModel
+              val tmpModel : Model = Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap)
+              val fullModel = Model(model)
+              Some((tmpModel, fullModel, BlockingConstraints(positiveConstraints ++ negativeConstraints)))
             }
             case breu.Result.UNSAT | breu.Result.UNKNOWN => None
           }
         }
       } catch {
-        case e : Exception => None
+        case e : Exception => {
+          println("EXCEPTION: " + e)
+          None
+        }
       }
     }
   }
 }
 
 
-case class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean = false, strong : Boolean = true) {
+case class Branch(pseudoLiterals : List[PseudoLiteral], order : Order, val isClosed : Boolean)(implicit strong : Boolean) extends Iterable[PseudoLiteral] {
   assert(pseudoLiterals.length > 0)
   def length = pseudoLiterals.length
   def depth = pseudoLiterals.length
 
-  override def toString() = pseudoLiterals.mkString("<-") + " || " + conflicts
+  def iterator = pseudoLiterals.iterator
 
-  lazy val closed = Branch(pseudoLiterals, true, strong)
-  lazy val weak = Branch(pseudoLiterals, isClosed, false)
+  override def toString() = pseudoLiterals.mkString("<-") + " || " + order + " || " + conflicts.mkString(" v ")
+
+  lazy val closed = Branch(pseudoLiterals, order, true)(strong)
+  lazy val weak = Branch(pseudoLiterals, order, isClosed)(false)
 
   lazy val conflicts = {
     if (strong) {
       // Only allow contradiction involving last one or two nodes
       val n1 = pseudoLiterals(0)
-      val pairConflict : List[Branch.Conflict]  =
-        if (pseudoLiterals.length > 1) {
-          val n2 = pseudoLiterals(1)
-          if (n1.isComplementary(n2)) {
-            List(Branch.ComplementaryPair(n1.atom, n2.atom))
-          } else {
-            List()
-          }
-        } else {
-          List()
-        }
 
-      val singleConflict : List[Branch.Conflict] =
-        if (n1.lit.isNegativeEquation) {
-          val (lhs, rhs) = n1.terms
-          List(Branch.InvalidEquation(lhs, rhs))
-        } else {
-          List()
-        }
+      // Only use this if branch length > 0
+      lazy val n2 = pseudoLiterals(1)
 
-      pairConflict ++ singleConflict
+      // Three cases:
+      // (1) First node is an inequality, then this inequality must be part of the conflict
+      // (2) First node is Positive/NegativeLiteral, second node is an equality, then first node must be in conflict (using equality)      
+      // (3) First and second node is a Positive/NegativeLiteral, then they must be in conflict
+
+      if (n1.lit.isNegativeEquation) {
+        // Case 1
+        val (lhs, rhs) = (n1.equation.lhs, n1.equation.rhs)
+        List(Branch.InvalidEquation(lhs, rhs))
+      } else if (pseudoLiterals.length >= 2 && n1.lit.isAtom && n2.lit.isPositiveEquation) {
+        // Case 2
+        // TODO: Add check that n1 and n3 actually uses equation in n2.
+        for (n3 <- pseudoLiterals.drop(2); if n1.isComplementary(n3))
+        yield Branch.ComplementaryPair(n1.atom, n3.atom)
+      } else if (pseudoLiterals.length >= 2 && n1.isComplementary(n2)) {
+        // Case 3
+        List(Branch.ComplementaryPair(n1.atom, n2.atom))
+      } else {
+        // No case
+        List()
+      }
     } else {
-      val n1 = pseudoLiterals(0)
-      val pairConflicts : List[Branch.Conflict]  =
-        for (n2 <- pseudoLiterals.tail; if n1.isComplementary(n2))
-        yield Branch.ComplementaryPair(n1.atom, n2.atom)
+      val pairConflicts : List[Branch.Conflict]  =      
+        (for (
+          i1 <- 0 until pseudoLiterals.length;
+          i2 <- (i1+1) until pseudoLiterals.length;
+          if pseudoLiterals(i1).isComplementary(pseudoLiterals(i2)))
+          yield Branch.ComplementaryPair(pseudoLiterals(i1).atom, pseudoLiterals(i2).atom)).toList
 
       val singleConflict : List[Branch.Conflict] =
-        if (n1.lit.isNegativeEquation) {
-          val (lhs, rhs) = n1.terms
-          List(Branch.InvalidEquation(lhs, rhs))
-        } else {
-          List()
+        for (pl <- pseudoLiterals; if pl.lit.isNegativeEquation) yield {
+          val (lhs, rhs) = (pl.equation.lhs, pl.equation.rhs)
+          Branch.InvalidEquation(lhs, rhs)
         }
 
       pairConflicts ++ singleConflict
@@ -112,29 +146,6 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean =
   }
 
   lazy val equations = pseudoLiterals.map(_.lit).filter(_.isPositiveEquation)
-
-  lazy val order = {
-    import scala.collection.mutable.ListBuffer
-    val tmpOrder = ListBuffer() : ListBuffer[Term]
-
-    def add(t : Term) = {
-      if (!tmpOrder.contains(t))
-        tmpOrder += t
-    }
-    
-    for (pl <- pseudoLiterals.reverse) {
-      for (feq <- pl.funEquations) {
-        for (a <- feq.args)
-          add(a)
-        add(feq.res)
-      }
-
-      for (t <- pl.lit.terms)
-        add(t)
-    }
-
-    new Order(tmpOrder.toList)
-  }
 
   lazy val toBreu : Option[(Domains, List[Branch.Equation], Branch.Goal)] = {
     if (conflicts.length == 0) {
@@ -180,11 +191,14 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean =
     }
   }
 
-  def tryClose(blockingConstraints : BlockingConstraints = BlockingConstraints.Empty) = Branch.tryClose(List(this), blockingConstraints)
+  def tryClose(blockingConstraints : BlockingConstraints = BlockingConstraints.Empty, remTime : Long) = Branch.tryClose(this, List(), blockingConstraints, remTime)
+
+  def tryClose(remTime : Long) = Branch.tryClose(this, List(), BlockingConstraints.Empty, remTime)
 
   def extend(pl : PseudoLiteral) = {
     assert(!isClosed)
-    Branch(pl :: pseudoLiterals, isClosed, strong)
+    val newOrder = order + pl.order
+    Branch(pl :: pseudoLiterals, newOrder, isClosed)(strong)
   }
 
 
@@ -193,5 +207,11 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], val isClosed : Boolean =
 
     for (pl <- pseudoLiterals.tail; if (h.lit.regularityConstraint(pl.lit).isDefined))
     yield h.lit.regularityConstraint(pl.lit).get
+  }
+
+  def instantiate(model : Model) = {
+    // TODO: Maybe we can change the order here in a clever way?
+    val newPseudoLiterals = pseudoLiterals.map(_.instantiate(model))
+    Branch(newPseudoLiterals, order, isClosed)(strong)
   }
 }

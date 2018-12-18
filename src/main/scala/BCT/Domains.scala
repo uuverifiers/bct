@@ -20,7 +20,8 @@ case class Domains(val domains : Map[Term, Set[Term]]) {
     val newMap = MMap() ++ domains
     for ((k, v) <- that.domains) {
       if (newMap contains k)
-        newMap += k -> (domains(k).intersect(that.domains(k)))
+        // TODO: Is this always sound?
+        newMap += k -> (domains(k).union(that.domains(k)))
       else
         newMap += k -> v
     }

@@ -9,9 +9,12 @@ abstract class Literal {
   def isComplementary(that : Literal) = false
   val isNegativeEquation = false
   val isPositiveEquation = false
+  val isAtom = false
   val terms : Set[Term]
 
   def copy(suffix : String) : Literal
+
+  def instantiate(model : Model) : Literal
 
   def regularityConstraint(that : Literal) : Option[Constraint] = {
     (this, that) match {
@@ -24,20 +27,25 @@ abstract class Literal {
   }
 }
 
+
+// TODO: Should these objects be considered Atoms?
 case object True extends Literal {
   val terms = Set()
   override def copy(suffix : String) = this
+  override def instantiate(model : Model) = this
 }
 
 case object False extends Literal{
   val terms = Set()
   override def copy(suffix : String) = this
+  override def instantiate(model : Model) = this  
 }
 
 
 case class PositiveLiteral(atom : Atom) extends Literal {
   override def toString() = atom.toString()
   override val terms = atom.terms
+  override val isAtom = true
   override def isComplementary(that : Literal) = {
     that match {
       case NegativeLiteral(a) => a.predicate == atom.predicate
@@ -45,32 +53,41 @@ case class PositiveLiteral(atom : Atom) extends Literal {
     }
   }
   override def copy(suffix : String) = PositiveLiteral(atom.copy(suffix))
+  override def instantiate(model : Model) = PositiveLiteral(atom.instantiate(model))
 
 }
 
 case class NegativeLiteral(atom : Atom) extends Literal {
-  override def toString() = "(-" + atom + ")"
+  override def toString() = "(~" + atom + ")"
   override val terms = atom.terms
-
+  override val isAtom = true
   override def isComplementary(that : Literal) = {
     that match {
       case PositiveLiteral(a) => a.predicate == atom.predicate
       case _ => false
     }
   }
-  override def copy(suffix : String) = NegativeLiteral(atom.copy(suffix))  
+  override def copy(suffix : String) = NegativeLiteral(atom.copy(suffix))
+  override def instantiate(model : Model) = NegativeLiteral(atom.instantiate(model))  
 }
 
-case class PositiveEquation(lhs : Term, rhs : Term) extends Literal {
+
+abstract class Equation(val lhs : Term, val rhs : Term) extends Literal {
+  val terms = Set(lhs, rhs)
+}
+
+case class PositiveEquation(lhs_ : Term, rhs_ : Term) extends Equation(lhs_, rhs_) {
   override def toString() = lhs + " = " + rhs
   override val isPositiveEquation = true
   override val terms = Set(lhs, rhs)
   override def copy(suffix : String) = PositiveEquation(lhs.copy(suffix), rhs.copy(suffix))
+  override def instantiate(model : Model) = PositiveEquation(lhs.instantiate(model), rhs.instantiate(model))
 }
 
-case class NegativeEquation(lhs : Term, rhs : Term) extends Literal {
+case class NegativeEquation(lhs_ : Term, rhs_ : Term) extends Equation(lhs_, rhs_) {
   override def toString() = lhs + " != " + rhs
   override val isNegativeEquation = true
   override val terms = Set(lhs, rhs)
-  override def copy(suffix : String) = NegativeEquation(lhs.copy(suffix), rhs.copy(suffix))  
+  override def copy(suffix : String) = NegativeEquation(lhs.copy(suffix), rhs.copy(suffix))
+  override def instantiate(model : Model) = NegativeEquation(lhs.instantiate(model), rhs.instantiate(model))  
 }

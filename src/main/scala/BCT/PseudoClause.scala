@@ -10,10 +10,18 @@ object PseudoClause {
 case class PseudoClause(pseudoLiterals : List[PseudoLiteral]) extends Iterable[PseudoLiteral] {
   override def toString() = "[" + pseudoLiterals.mkString(" v ") + "]"
 
+  def apply(i : Int) = pseudoLiterals(i)
+
   val length = pseudoLiterals.length
-  val iterator = pseudoLiterals.iterator
+  def iterator = pseudoLiterals.iterator
 
   def copy(suffix : String) = {
     PseudoClause(pseudoLiterals.map(_.copy(suffix)))
   }
+
+  def +(that : PseudoClause) = {
+    PseudoClause(this.pseudoLiterals ++ that.pseudoLiterals)
+  }
+
+  // def extend(pseudoLiteral : PseudoLiteral) : PseudoClause = extend(List(pseudoLiteral))
 }

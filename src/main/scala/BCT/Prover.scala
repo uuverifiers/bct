@@ -3,15 +3,13 @@ package bct
 // TODO: Insert assertions
 
 object Prover {
-  var debug = false
   var startTime : Long = 0
+  var maxTime : Long = 0
   var timeoutReached = false
+  var maxDepthReached = false
 
-  def dprint(str : String) =
-    if (debug) print(str)
+  var lastAction = ""
 
-
-  def dprintln(str : String) = dprint(str + "\n")
   // Given steps and set of clauses, return which clause and which index to use
   def litIdx(step : Int, inputClauses : List[PseudoClause], clauseIdx : Int = 0) : (PseudoClause, Int) = {
     if (step < inputClauses(clauseIdx).length)
@@ -25,30 +23,33 @@ object Prover {
   // Output: If step is not applicable, None, else a tuple with the branch closed and new open branches
   def handleStep(table: Table, step : Int, branch : Branch, inputClauses : List[PseudoClause], tableStep : Int) : Option[Table] = {
     // Convert step to Closer
+    val remTime = maxTime - (System.currentTimeMillis - startTime)
     if (step == 0) {
-      dprintln("\tclose()")
-      table.close()
+      lastAction = "\tclose()"
+      table.close(step, remTime)
     } else {
       val (clause, idx) = litIdx(step-1, inputClauses)
       val copiedClause = clause.copy(tableStep.toString)
-      dprintln("Extend and close w. " + copiedClause + " idx " + idx)
-      table.extendAndClose(copiedClause, idx)
+      lastAction = "Extend and close w. " + copiedClause + " idx " + idx
+      table.extendAndClose(copiedClause, idx, step, remTime)
     }
   }
 
 
   var PROVE_TABLE_STEP = 0
   def proveTable(table : Table, inputClauses : List[PseudoClause], timeout : Long, step : Int = 0, steps : List[Int] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
-    dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
     PROVE_TABLE_STEP += 1
     if (System.currentTimeMillis - startTime > timeout) {
       timeoutReached = true
       None
     } else if (table.isClosed) {
-      dprintln("\tClosed!")
+      D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
+      D.dprintln("\tClosed!")
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
-      dprintln("\tmax depth!")
+    D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")      
+      D.dprintln("\tmax depth!")
+      maxDepthReached = true
       None
     } else {
       // We first try to extend the table. Then we loop over different ways of closing it. Two-level loop.
@@ -61,7 +62,6 @@ object Prover {
 
       // Did we try every step?      
       if (step > maxStep) {
-        dprintln("\tmax step (" + maxStep + ")!")
         // BACKTRACK
         None
       } else {
@@ -71,7 +71,9 @@ object Prover {
         handleStep(table, step, branch, inputClauses, PROVE_TABLE_STEP) match {
           case None => proveTable(table, inputClauses, timeout, step + 1, steps)
           case Some(nextTable) => {
-            dprintln(nextTable.fullString())
+            D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
+            D.dprintln(lastAction)
+            D.dprintln(nextTable.toString)
             proveTable(nextTable, inputClauses, timeout, 0, step::steps) match {
               case None => proveTable(table, inputClauses, timeout, step + 1, steps)
               case closedTable => {
@@ -85,13 +87,12 @@ object Prover {
   }
 
 
-  def prove(inputClauses : List[PseudoClause], timeout : Long, debug_ : Boolean = false) = {
-    debug = debug_
-    println("Proving...")
+  def proveaux(inputClauses : List[PseudoClause], timeout : Long) = {
+    D.dprintln("Proving...")
     var result = None : Option[Table]
-    var inputClause = 0
+    var startClause = 0
 
-    if (debug) {
+    if (D.debug) {
       val maxStep = inputClauses.map(_.length).sum
       for (step <- 0 to maxStep) {
         val str =
@@ -102,33 +103,71 @@ object Prover {
             val copiedClause = clause.copy("...")
             "Extend and close w. " + copiedClause + " idx " + idx
           }
-        println(step + "\t" + str)
+        D.dprintln(step + "\t" + str)
       }
     }
 
+    maxTime = timeout
     startTime = System.currentTimeMillis
     timeoutReached = false
 
+    // TODO: Begin by trying to close the unit-clause tableaux (with weak connections I guess)
+
+    val unitClauses = inputClauses.filter(_.length == 1).map(_.head)
+
+    D.dprintln("UnitClauses:")
+    for (uc <- unitClauses)
+      D.dprintln("\t" + uc)
+
+
+    // TODO: This is for PUZ001+1.p
+    // val startClauses = List(inputClauses(5))// .filter(_.length > 1)
+    val startClauses =
+      if (inputClauses.filter(_.length > 1).isEmpty)
+        List(inputClauses.head)
+      else
+        inputClauses.filter(_.length > 1)
+
     Timer.measure("Prove") {
       // We have to try all input clauses
-      while (!result.isDefined && inputClause < inputClauses.length) {
-        val iClause = inputClauses(inputClause)
-        dprintln("<<<Input Clause: " + iClause + ">>>")
-        val table = Table(iClause)
-        dprintln(table.toString)
+      while (!result.isDefined && startClause < startClauses.length) {
+
+        // We need to start with all unit clauses
+        val iClause = startClauses(startClause)
+        D.dprintln("<<<Input Clause: " + iClause + ">>>")
+        val table = Table.create(iClause, unitClauses)
+
+        maxDepthReached = false
+        D.dprintln(table.toString)
         var maxDepth = 3
-        while (!result.isDefined && maxDepth < 8) {
+        val MAXIMUM_DEPTH=40
+        while (!result.isDefined && maxDepth < MAXIMUM_DEPTH) {
           result = proveTable(table, inputClauses, timeout)(maxDepth)
-          maxDepth += 1
+          if (maxDepthReached)
+            maxDepth += 1
+          else
+            maxDepth = MAXIMUM_DEPTH
         }
-        inputClause += 1
+        startClause += 1
       }
     }
 
+    result
+  }
 
-    dprintln(Timer.toString)
-    if (timeoutReached)
-      println("TIMEOUT")
+  def prove(inputClauses : List[PseudoClause], timeout : Long) = {
+    val result = proveaux(inputClauses, timeout)
+    // if (result.isDefined) {
+    //   val table = result.get
+    //   val model = table.fullModel
+    //   val patchedModel = Model(
+    //     for ((t, v) <- model.assignments) yield {
+    //       if (t.isUniversal && t == v)
+    //         t -> Order.MIN_TERM
+    //       else
+    //         t -> v
+    //     })
+    // }
     result
   }
 }

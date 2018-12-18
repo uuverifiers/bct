@@ -5,23 +5,34 @@ object Table {
     new Table(branches, List())
   }
 
-  def apply(cls : PseudoClause) = {
-    val branches = (for (l <- cls) yield Branch(List(l))).toList
-    new Table(branches, List())
+  def apply(cls : PseudoClause, strong : Boolean = true) = {
+    val branches = (for (l <- cls) yield Branch(List(l), strong)).toList
+    new Table(branches, List())(strong)
+  }
+
+  def create(cls : PseudoClause, unitClauses : List[PseudoLiteral], strong : Boolean = true) = {
+    val branches = (for (l <- cls) yield {
+
+      Branch(l :: unitClauses, strong)
+    }).toList
+    new Table(branches, List())(strong)
   }
 }
 
-class Table(openBranches : List[Branch], closedBranches : List[Branch], model : Model = Model.EmptyModel, blockingConstraints : BlockingConstraints = BlockingConstraints.Empty, strong : Boolean = true) {
+class Table(openBranches : List[Branch], closedBranches : List[Branch], val steps : List[Int] = List(), val partialModel : Model = Model.EmptyModel, val fullModel : Model = Model.EmptyModel, blockingConstraints : BlockingConstraints = BlockingConstraints.Empty)(implicit strong : Boolean = true) {
 
-  override def toString() = "<<<TABLE>>>\n" + openBranches.mkString("\n") + "\n--closed--\n" + closedBranches.mkString("\n") + "\n<<</TABLE>>>"
+  override def toString =
+    (if (!openBranches.isEmpty)
+      "----open----\n" + openBranches.mkString("\n") + "\n"
+    else
+      "") +
+    (if (!closedBranches.isEmpty)
+      "---closed---\n" + closedBranches.mkString("\n") + "\n"
+    else
+      "") + "\n" +
+  "steps: " + steps.reverse.mkString(".") + "\n" +
+  "Model: \n" + partialModel
 
-  def fullString() =
-    "<<<TABLE>>>\n" +
-  openBranches.mkString("\n") + "\n" + 
-  "<--------->\n" +
-  closedBranches.mkString("\n") + "\n" +
-  // model +  
-  "\n<<</TABLE>>>"    
   
 
   val length = openBranches.length + closedBranches.length
@@ -29,22 +40,24 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
   val isClosed = openBranches.length == 0
   lazy val nextBranch = openBranches.head
 
-  def closeBranches(branches : List[Branch], extraBlockingConstraints : BlockingConstraints = BlockingConstraints.Empty) = {
-    Branch.tryClose(branches, blockingConstraints ++ extraBlockingConstraints)
+  def closeBranches(testBranch : Branch, branches : List[Branch], extraBlockingConstraints : BlockingConstraints, maxTime : Long) = {
+    Branch.tryClose(testBranch, branches, blockingConstraints ++ extraBlockingConstraints, maxTime)
   }
 
-  def close() : Option[Table] = {
-    val branch = nextBranch.weak
-    closeBranches(branch :: closedBranches) match {
+  def close(step : Int, maxTime : Long) : Option[Table] = {
+    val testBranch = nextBranch.weak
+    closeBranches(testBranch, closedBranches, BlockingConstraints.Empty, maxTime) match {
       case None => None
-      case Some((newModel, blockingConstraints)) => {
-        val closedTable = new Table(openBranches.tail, branch.closed :: closedBranches, newModel, blockingConstraints)
-        Some(closedTable)
+      case Some((relModel, newFullModel, blockingConstraints)) => {
+        // TODO: What if model extension doesn't work
+        val newPartialModel = partialModel.extend(relModel).get
+        val closedTable = new Table(openBranches.tail, testBranch.closed :: closedBranches, step :: steps, newPartialModel, newFullModel, blockingConstraints)
+        Some(closedTable.instantiate(newPartialModel))
       }
     }
   }
 
-  def extendAndClose(clause : PseudoClause, idx : Int) : Option[Table] = {
+  def extendAndClose(clause : PseudoClause, idx : Int, step : Int, maxTime : Long) : Option[Table] = {
     val branch = nextBranch
     val newBranches = (for (pl <- clause) yield branch.extend(pl)).toList
     val testBranch = newBranches(idx)
@@ -54,20 +67,31 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], model : 
     // I.e., if the newly added head of a branch is similar in structure to a previous,
     // at least one of the literals must differ (i.e. a negative blocking clause)
     // val regularityConstraints : BlockingConstraints =  BlockingConstraints((for (b <- restBranches) yield b.regularityConstraints).flatten)
-    val regularityConstraints : BlockingConstraints =  BlockingConstraints(testBranch.regularityConstraints)
+    // val regularityConstraints : BlockingConstraints =  BlockingConstraints(testBranch.regularityConstraints)
 
-    // println("REST BRANCHES")
-    // println(restBranches.mkString("\n"))
-    // println("REGULARITY")
-    // println(regularityConstraints.mkString("\n"))
+    val regularityConstraints = BlockingConstraints(List())
 
-    closeBranches(testBranch :: closedBranches, regularityConstraints) match {    
+    closeBranches(testBranch, closedBranches, regularityConstraints, maxTime) match {    
       case None => None
-      case Some((newModel, blockingConstraints)) => {
+      case Some((relModel, newFullModel, blockingConstraints)) => {
+        // TODO: What if model extension doesn't work
+        val newPartialModel = partialModel.extend(relModel).get        
         val closedTable =
-          new Table(restBranches ++ openBranches.tail, testBranch.closed :: closedBranches, newModel, blockingConstraints)
-        Some(closedTable)
+          new Table(restBranches ++ openBranches.tail, testBranch.closed :: closedBranches, step :: steps, newPartialModel, newFullModel, blockingConstraints)
+        Some(closedTable.instantiate(newPartialModel))
       }
     }
+  }
+
+  def extend(clause : PseudoClause) = {
+    val branch = nextBranch
+    val newBranches = (for (pl <- clause) yield branch.extend(pl)).toList
+    new Table(newBranches ++ openBranches.tail, closedBranches, steps, partialModel, fullModel, blockingConstraints)(strong)
+  }
+
+  def instantiate(model : Model) = {
+    val newOpenBranches = openBranches.map(_.instantiate(model))
+    val newClosedBranches = closedBranches.map(_.instantiate(model))
+    new Table(newOpenBranches, newClosedBranches, steps, partialModel, fullModel, blockingConstraints)(strong)
   }
 }
