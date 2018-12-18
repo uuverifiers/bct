@@ -3,18 +3,43 @@ package bct
 import ap.parser._
 
 object Term {
-  def apply(iterm : ITerm, id : Int) : Term = {
-    Term(iterm.toString, id)
-  }
 
-  def apply(term : String, isUniversal : Boolean) : Term = {
-    Term(term, 0, isUniversal)
-  }
+
+  def apply(term : String) : Term =
+    new Term(term)
+  def apply(term : String, id : Int) : Term =
+    new Term(term, 0)  
+  def apply(term : String, id : Int, isUniversal : Boolean) : Term =
+    new Term(term, 0, isUniversal)
+  def apply(term : String, id : Int, isUniversal : Boolean, isSkolem : Boolean) =
+    new Term(term, id, isUniversal, isSkolem)
+
+
+  def apply(term : String, isUniversal : Boolean) : Term =
+    new Term(term, 0, isUniversal)    
+
+
+  def apply(iterm : ITerm, id : Int) : Term = {
+    new Term(iterm.toString, id)
+  }  
 }
 
 // TODO: Remove default id
-case class Term(val term : String, val id : Int = 0, val isUniversal : Boolean = false, val isSkolem : Boolean = false) {
+
+// TODO: Make sure that terms of different id are same?
+class Term(val term : String, val id : Int = 0, val isUniversal : Boolean = false, val isSkolem : Boolean = false) {
   // forall/exists sign in front of universal/existential terms
+
+  def canEqual(a: Any) = a.isInstanceOf[Term]
+
+  override def equals(that: Any): Boolean =
+    that match {
+      case that : Term => that.canEqual(this) && this.hashCode == that.hashCode
+      case _ => false
+    }
+
+  override def hashCode: Int = term.hashCode
+
   override def toString() = {
     if (isUniversal)
       8704.toChar.toString + term
@@ -24,9 +49,9 @@ case class Term(val term : String, val id : Int = 0, val isUniversal : Boolean =
 
   def copy(suffix : String) =
     if (isUniversal)
-      Term(term + "$" + suffix, id, isUniversal)
+      new Term(term + "$" + suffix, id, isUniversal)
     else if (isSkolem)
-      Term(term + "$" + suffix, id, isUniversal, isSkolem)
+      new Term(term + "$" + suffix, id, isUniversal, isSkolem)
     else
       this
 
