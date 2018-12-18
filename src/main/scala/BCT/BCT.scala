@@ -2,6 +2,9 @@ package bct
 
 
 object BCT extends App {
+
+  var TIMEOUT : Long = 5000
+
   def parseFile(problem : String) = {
     Parser.tptp2Internal(problem) match {
       case None => println("Error parsing..")
@@ -16,8 +19,14 @@ object BCT extends App {
   }
 
   if (args.length < 2) {
-    println("Usage: [dir|file] path")
+    println("Usage: [dir|file] path [timeout]")
   } else {
+    TIMEOUT =
+      if (args.length < 3)
+        5000
+      else
+        args(2).toLong
+    println("TIMEOUT: " + TIMEOUT)
     args(0) match {
       case "dir" => {
         val inputDir = args(1)
@@ -27,9 +36,9 @@ object BCT extends App {
             split(1)
           else
             split(0)) + ".out"
-        Benchmarker.testDir(inputDir, outFile)
+        Benchmarker.testDir(inputDir, outFile, TIMEOUT)
       }
-      case "file" => Benchmarker.testFile(args(1))
+      case "file" => Benchmarker.testFile(args(1), TIMEOUT)
     }
   }
 }

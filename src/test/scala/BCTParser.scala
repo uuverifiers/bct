@@ -10,13 +10,13 @@ class BCTParser extends FunSuite with DiagrammedAssertions {
     Parser.tptp2Internal(dir.toString + "/" + problem).get
   }
 
-  val Ax0 = Term("x_0", true)
-  val Ax1 = Term("x_1", true)
-  val Ax2 = Term("x_2", true)    
+  val Ax0 = Term("x_0", 1, true)
+  val Ax1 = Term("x_1", 2, true)
+  val Ax2 = Term("x_2", 3, true)    
 
-  val Ex0 = Term("c_0")
-  val Ex1 = Term("c_1")
-  val Ex2 = Term("c_2")  
+  val Ex0 = Term("c_0", 4)
+  val Ex1 = Term("c_1", 5)
+  val Ex2 = Term("c_2", 6)  
 
 
   test ("equiv+1") {
@@ -27,7 +27,6 @@ class BCTParser extends FunSuite with DiagrammedAssertions {
       val lit2 = PseudoLiteral(feq2, PositiveEquation(Ex0, Ax1))
       PseudoClause(List(lit1, lit2))
     }
-    println("EQUIV1! -- >" + List(pc1))
     assert(List(pc1) == parseFile("equiv+1.p"))
   }
 

@@ -16,20 +16,20 @@ class BCTUnit extends FunSuite with DiagrammedAssertions {
   val g = "g"
 
   // terms
-  val a = Term("a")
-  val b = Term("b")
-  val c = Term("c")
+  val a = Term("a", 1)
+  val b = Term("b", 2)
+  val c = Term("c", 3)
 
   // variables
-  val X = Term("X", true)
+  val X = Term("X", 4, true)
 
+  // TODO: Should we allow to have two terms which have same name, but different arguments?
   test ("Term") {
-    val a2 = Term("a")
-    val bU = Term("b", true)
-    val bU2 = Term("b", true)
+    val a2 = Term("a", 5)
+    val bU = Term("b", 6, true)
+    val bU2 = Term("b", 7, true)
     assert(a == a2)
     assert(a != b)
-    assert(b != bU)
     assert(bU == bU2)
   }
 
@@ -201,7 +201,6 @@ class BCTUnit extends FunSuite with DiagrammedAssertions {
       PseudoLiteral(PositiveLiteral(Atom(P, List(X, X)))),
       PseudoLiteral(List(feq1, feq2), NegativeLiteral(Atom(P, List(a,b))))
     ), true)
-    println(br)
     assert(br.tryClose(TIMEOUT).isDefined)
   }
 }

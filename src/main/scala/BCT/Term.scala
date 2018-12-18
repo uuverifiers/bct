@@ -5,12 +5,12 @@ import ap.parser._
 object Term {
 
 
-  def apply(term : String) : Term =
-    new Term(term)
+  // def apply(term : String) : Term =
+  //   new Term(term)
   def apply(term : String, id : Int) : Term =
-    new Term(term, 0)  
+    new Term(term, id)  
   def apply(term : String, id : Int, isUniversal : Boolean) : Term =
-    new Term(term, 0, isUniversal)
+    new Term(term, id, isUniversal)
   def apply(term : String, id : Int, isUniversal : Boolean, isSkolem : Boolean) =
     new Term(term, id, isUniversal, isSkolem)
 

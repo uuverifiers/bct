@@ -2,12 +2,12 @@ package bct
 
 // TODO: Insert assertions
 
+class TimeoutException extends Exception
+
 object Prover {
   var startTime : Long = 0
   var maxTime : Long = 0
-  var timeoutReached = false
   var maxDepthReached = false
-
   var lastAction = ""
 
   // Given steps and set of clauses, return which clause and which index to use
@@ -40,8 +40,7 @@ object Prover {
   def proveTable(table : Table, inputClauses : List[PseudoClause], timeout : Long, step : Int = 0, steps : List[Int] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
     PROVE_TABLE_STEP += 1
     if (System.currentTimeMillis - startTime > timeout) {
-      timeoutReached = true
-      None
+      throw new TimeoutException
     } else if (table.isClosed) {
       D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
       D.dprintln("\tClosed!")
@@ -109,10 +108,8 @@ object Prover {
 
     maxTime = timeout
     startTime = System.currentTimeMillis
-    timeoutReached = false
 
     // TODO: Begin by trying to close the unit-clause tableaux (with weak connections I guess)
-
     val unitClauses = inputClauses.filter(_.length == 1).map(_.head)
 
     D.dprintln("UnitClauses:")
@@ -136,17 +133,16 @@ object Prover {
         val iClause = startClauses(startClause)
         D.dprintln("<<<Input Clause: " + iClause + ">>>")
         val table = Table.create(iClause, unitClauses)
-
+        var searchCompleted = false
         maxDepthReached = false
         D.dprintln(table.toString)
         var maxDepth = 3
-        val MAXIMUM_DEPTH=40
-        while (!result.isDefined && maxDepth < MAXIMUM_DEPTH) {
+        while (!result.isDefined && !searchCompleted) {
           result = proveTable(table, inputClauses, timeout)(maxDepth)
           if (maxDepthReached)
             maxDepth += 1
           else
-            maxDepth = MAXIMUM_DEPTH
+            searchCompleted = true
         }
         startClause += 1
       }

@@ -69,9 +69,8 @@ object Branch {
           }
         }
       } catch {
-        case e : Exception => {
-          println("EXCEPTION: " + e)
-          None
+        case e : org.sat4j.specs.TimeoutException => {
+          throw new TimeoutException
         }
       }
     }

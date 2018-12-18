@@ -11,7 +11,7 @@ import scala.collection.mutable.{Map => MMap}
 
 object Benchmarker {
 
-  def testDir(dir : String, output : String, timeout : Long = 5000) = {
+  def testDir(dir : String, output : String, timeout : Long) = {
     val directory = new File(dir)
     val problems = directory.listFiles.map(_.toString)
     val problemCount = problems.length
@@ -36,6 +36,7 @@ object Benchmarker {
               case Some(table) => "sat"
             }
           } catch {
+            case to : TimeoutException => "timeout"
             case e : Exception => "error"
           }
 
@@ -50,46 +51,54 @@ object Benchmarker {
   }  
 
 
-  def testFile(problem : String) = {
+  def testFile(problem : String, timeout : Long) = {
+    println("Solving with timeout: " + timeout)
     D.debug = true
-    Parser.tptp2Internal(problem) match {
-      case None => ()
-      case Some(pseudoClauses) => {
-        println("Parsed")
-        println("PseudoClauses:")
-        for (pc <- pseudoClauses) {
-          println(pc)
-        }
+    val Some(pseudoClauses) = Parser.tptp2Internal(problem)
+    println("PseudoClauses:")
+    for (pc <- pseudoClauses) {
+      println(pc)
+    }
 
-        val start = System.currentTimeMillis
-        try {
-          Timer.measure("Prove") {
-            Prover.prove(pseudoClauses, 5000) match {
-              case None => {
-                println("No proof found...")
-              }
-              case Some(table) => {
-                println(table)
-              }
-            }
+    val start = System.currentTimeMillis
+    try {
+      Timer.measure("Prove") {
+        Prover.prove(pseudoClauses, timeout) match {
+          case None => {
+            println("Incomplete search")
           }
-        } catch {
-          case e : Exception => {
-            println("Exception: " + e)
-            e.printStackTrace()
+          case Some(table) => {
+            println(table)
           }
         }
-        
-        val stop = System.currentTimeMillis
-        println(Timer)
-        println((stop - start) + "ms")
+      }
+    } catch {
+      case to : TimeoutException => {
+        println("Timeout")
+      }
+
+      case e : Exception => {
+        println("Exception: " + e)
+        e.printStackTrace()
       }
     }
+    
+    val stop = System.currentTimeMillis
+    println(Timer)
+    println((stop - start) + "ms")
   }
 
-  def run(p : String, timeout : Long) = {
+  def run(p : String, timeout : Long) : String = {
     D.debug = false
     val Some(pseudoClauses) = Parser.tptp2Internal(p)
-    Prover.prove(pseudoClauses, timeout)
+
+    try {
+      Prover.prove(pseudoClauses, timeout) match {
+        case Some(_) => "SAT"
+        case None => "UNKNOWN"
+      }
+    } catch {
+      case to : TimeoutException => "TIMEOUT"
+    }
   }
 }

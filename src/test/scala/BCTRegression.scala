@@ -22,22 +22,10 @@ class Regression extends FunSpec {
     for (f <- satFiles) {
       it(f.getName()) {
         val ret = Benchmarker.run(f.toString, TIMEOUT)
-        assert(ret.isDefined)
+        assert(ret == "SAT")
       }
     }
   }
-
-  // val unsatSources = new File(getClass.getResource("/unsat/").toURI())
-  // val unsatFiles = getListOfFiles(unsatSources, List(".breu"))
-
-  // describe("UNSAT") {
-  //   for (f <- unsatFiles) {
-  //     it(f.getName()) {
-  //       val ret = Tester.test(f.toString, TIMEOUT)
-  //       assert(ret == breu.Result.UNSAT)
-  //     }
-  //   }
-  // }
 
   val unknownSources = new File(getClass.getResource("/unknown/").toURI())
   val unknownFiles = getListOfFiles(unknownSources, List(".p"))
@@ -46,8 +34,20 @@ class Regression extends FunSpec {
     for (f <- unknownFiles) {      
       it(f.getName()) {
         val ret = Benchmarker.run(f.toString, TIMEOUT)
-        assert(!ret.isDefined)
+        assert(ret == "UNKNOWN")
       }
     }    
   }
+
+  val timeoutSources = new File(getClass.getResource("/timeout/").toURI())
+  val timeoutFiles = getListOfFiles(timeoutSources, List(".p"))
+
+  describe("TIMEOUT") {
+    for (f <- timeoutFiles) {      
+      it(f.getName()) {
+        val ret = Benchmarker.run(f.toString, TIMEOUT)
+        assert(ret == "TIMEOUT")
+      }
+    }    
+  }  
 }
