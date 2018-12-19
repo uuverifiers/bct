@@ -7,5 +7,5 @@ fof(ax1,axiom,
 fof(ax2,axiom,
     ( bird(polly) )).
 
-fof(conj,conjecture,
+fof(conj,negated_conjecture,
     ( ~ feather(polly))).

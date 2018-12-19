@@ -56,8 +56,8 @@ object Benchmarker {
     D.debug = false
     val Some(pseudoClauses) = Parser.tptp2Internal(problem)
     println("PseudoClauses:")
-    for (pc <- pseudoClauses) {
-      println(pc)
+    for ((pc, i) <- pseudoClauses.zipWithIndex) {
+      println("(" + i + ")\t" + pc)
     }
 
     val start = System.currentTimeMillis
