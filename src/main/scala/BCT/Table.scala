@@ -19,7 +19,7 @@ object Table {
   }
 }
 
-class Table(openBranches : List[Branch], closedBranches : List[Branch], val steps : List[Int] = List(), val partialModel : Model = Model.EmptyModel, val fullModel : Model = Model.EmptyModel, blockingConstraints : BlockingConstraints = BlockingConstraints.Empty)(implicit strong : Boolean = true) {
+class Table(openBranches : List[Branch], closedBranches : List[Branch], val steps : List[(Int, Int)] = List(), val partialModel : Model = Model.EmptyModel, val fullModel : Model = Model.EmptyModel, blockingConstraints : BlockingConstraints = BlockingConstraints.Empty)(implicit strong : Boolean = true) {
 
   override def toString =
     (if (!openBranches.isEmpty)
@@ -44,7 +44,7 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], val step
     Branch.tryClose(testBranch, branches, blockingConstraints ++ extraBlockingConstraints, maxTime)
   }
 
-  def close(step : Int, maxTime : Long) : Option[Table] = {
+  def close(step : (Int, Int), maxTime : Long) : Option[Table] = {
     val testBranch = nextBranch.weak
     closeBranches(testBranch, closedBranches, BlockingConstraints.Empty, maxTime) match {
       case None => None
@@ -57,7 +57,7 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], val step
     }
   }
 
-  def extendAndClose(clause : PseudoClause, idx : Int, step : Int, maxTime : Long) : Option[Table] = {
+  def extendAndClose(clause : PseudoClause, idx : Int, step : (Int, Int), maxTime : Long) : Option[Table] = {
     val branch = nextBranch
     val newBranches = (for (pl <- clause) yield branch.extend(pl)).toList
     val testBranch = newBranches(idx)
@@ -68,7 +68,6 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], val step
     // at least one of the literals must differ (i.e. a negative blocking clause)
     // val regularityConstraints : BlockingConstraints =  BlockingConstraints((for (b <- restBranches) yield b.regularityConstraints).flatten)
     // val regularityConstraints : BlockingConstraints =  BlockingConstraints(testBranch.regularityConstraints)
-
     // val regularityConstraints = BlockingConstraints(List())
 
     val regularityConstraints =
