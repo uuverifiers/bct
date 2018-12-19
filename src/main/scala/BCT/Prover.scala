@@ -49,7 +49,7 @@ object Prover {
   def proveTable(table : Table, inputClauses : List[PseudoClause], literalMap : Map[(String, Boolean), List[(Int, Int)]], timeout : Long, steps : List[(Int, Int)] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
     D.dprintln("proveTable(..., " + steps.mkString(">") + ")")
     if (!steps.isEmpty)
-      println(steps.reverse.mkString(">"))
+      D.dprintln(steps.reverse.mkString(">"))
     PROVE_TABLE_STEP += 1
     if (System.currentTimeMillis - startTime > timeout) {
       throw new TimeoutException
@@ -69,8 +69,6 @@ object Prover {
           case NegativeLiteral(a) => literalMap((a.predicate, false))
           case _ => allSteps
         }
-
-      println(possibleSteps.length + "/" + inputClauses.map(_.length).sum)
 
       for ((clause, idx) <- ((-1,-1) :: possibleSteps)) {
         val branch = table.nextBranch
@@ -140,7 +138,6 @@ object Prover {
     val literalMap = MMap() : MMap[(String, Boolean), List[(Int, Int)]]
 
     for ((ic, i) <- inputClauses.zipWithIndex) {
-      println(ic)
       for ((pl, j) <- ic.zipWithIndex) {
         pl.lit match {
           case PositiveLiteral(a) => {
@@ -164,7 +161,7 @@ object Prover {
     }
 
     for ((k, v) <- literalMap) {
-      println(k + " -> " + v.mkString(", "))
+      D.dprintln(k + " -> " + v.mkString(", "))
     }
 
     val candidateStartClauses = inputClauses.filter(_.length > 1).toList
@@ -192,7 +189,7 @@ object Prover {
         while (!result.isDefined && !searchCompleted) {
           result = proveTable(table, inputClauses, literalMap.toMap, timeout)(maxDepth)
           if (maxDepthReached) {
-            println("Increasing max depth: " + maxDepth)
+            D.dprintln("Increasing max depth: " + maxDepth)
             maxDepth += 1
           } else {
             searchCompleted = true
