@@ -54,14 +54,17 @@ object Prover {
       // We first try to extend the table. Then we loop over different ways of closing it. Two-level loop.
       // If we are at maximum depth, only allow step 0 (i.e., direct closing)
       val maxStep =
-        if (table.depth == MAX_DEPTH)
-          0
-        else
+        // if (table.depth == MAX_DEPTH) {
+        //   println("\tlast depth - only step 0")
+        //   0
+        // } else {
           inputClauses.map(_.length).sum
+        // }
 
       // Did we try every step?      
       if (step > maxStep) {
         // BACKTRACK
+        D.dprintln("\tmax step")
         None
       } else {
         // Extract open branch:
@@ -143,10 +146,12 @@ object Prover {
         var maxDepth = 3
         while (!result.isDefined && !searchCompleted) {
           result = proveTable(table, inputClauses, timeout)(maxDepth)
-          if (maxDepthReached)
+          if (maxDepthReached) {
+            println("Increasing max depth: " + maxDepth)
             maxDepth += 1
-          else
+          } else {
             searchCompleted = true
+          }
         }
         startClause += 1
       }
