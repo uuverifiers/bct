@@ -69,8 +69,12 @@ class Table(openBranches : List[Branch], closedBranches : List[Branch], val step
     // val regularityConstraints : BlockingConstraints =  BlockingConstraints((for (b <- restBranches) yield b.regularityConstraints).flatten)
     // val regularityConstraints : BlockingConstraints =  BlockingConstraints(testBranch.regularityConstraints)
 
-    val regularityConstraints = BlockingConstraints(List())
+    // val regularityConstraints = BlockingConstraints(List())
 
+    val regularityConstraints =
+      (for (b <- newBranches) yield {
+        b.regularityConstraints
+      }).fold(BlockingConstraints.Empty)(_ ++ _)
     closeBranches(testBranch, closedBranches, regularityConstraints, maxTime) match {    
       case None => None
       case Some((relModel, newFullModel, blockingConstraints)) => {

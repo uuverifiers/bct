@@ -45,10 +45,11 @@ object Branch {
       val breuEqs = breuSubProblems.map(_._2)
       val breuSolver = new breu.LazySolver[Term, String]()
       val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
-      // val (posBlockingClauses, negBlockingClauses) = (List(), List())
+      val (_, regularityConstraints) = testBranch.regularityConstraints.toBlockingClauses()
+      // println("local regularityConstraints: " + regularityConstraints)
       try {
-        val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, negBlockingClauses)
-        D.dprintln(breuProblem.toString)
+        val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, negBlockingClauses ++ regularityConstraints)
+        // D.dprintln(breuProblem.toString)
         if (D.debug) {
           D.breuCount += 1
           breuProblem.saveToFile("BREU_PROBLEMS/" + D.breuCount + ".breu")
@@ -69,6 +70,10 @@ object Branch {
           }
         }
       } catch {
+        // TODO: Maybe change this to ContradictoryException in BREU
+        case e : java.lang.Exception => {
+          None
+        }
         case e : org.sat4j.specs.TimeoutException => {
           throw new TimeoutException
         }
@@ -201,11 +206,13 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], order : Order, val isClo
   }
 
 
-  lazy val regularityConstraints : List[Constraint] = {
+  lazy val regularityConstraints : BlockingConstraints = {
     val h = pseudoLiterals.head
 
-    for (pl <- pseudoLiterals.tail; if (h.lit.regularityConstraint(pl.lit).isDefined))
-    yield h.lit.regularityConstraint(pl.lit).get
+    BlockingConstraints(
+      for (pl <- pseudoLiterals.tail; if (h.lit.regularityConstraint(pl.lit).isDefined))
+      yield h.lit.regularityConstraint(pl.lit).get
+    )
   }
 
   def instantiate(model : Model) = {

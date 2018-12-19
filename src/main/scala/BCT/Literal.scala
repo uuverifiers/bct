@@ -16,7 +16,7 @@ abstract class Literal {
 
   def instantiate(model : Model) : Literal
 
-  def regularityConstraint(that : Literal) : Option[Constraint] = {
+  def regularityConstraint(that : Literal) : Option[NegativeConstraint] = {
     (this, that) match {
       case (PositiveLiteral(a1), PositiveLiteral(a2)) if (a1.predicate == a2.predicate) => Some(NegativeConstraint(a1.args zip a2.args))
       case (NegativeLiteral(a1), NegativeLiteral(a2)) if (a1.predicate == a2.predicate) => Some(NegativeConstraint(a1.args zip a2.args))

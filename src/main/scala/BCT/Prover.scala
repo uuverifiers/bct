@@ -31,6 +31,7 @@ object Prover {
       val (clause, idx) = litIdx(step-1, inputClauses)
       val copiedClause = clause.copy(tableStep.toString)
       lastAction = "Extend and close w. " + copiedClause + " idx " + idx
+      D.dprintln("Trying: " + lastAction)
       table.extendAndClose(copiedClause, idx, step, remTime)
     }
   }
@@ -38,11 +39,13 @@ object Prover {
 
   var PROVE_TABLE_STEP = 0
   def proveTable(table : Table, inputClauses : List[PseudoClause], timeout : Long, step : Int = 0, steps : List[Int] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
+    D.dprintln("proveTable(..., " + step + ", " + steps.mkString(">") + ")")
+    // if (!steps.isEmpty)
+    //   println(steps.reverse.mkString(">"))
     PROVE_TABLE_STEP += 1
     if (System.currentTimeMillis - startTime > timeout) {
       throw new TimeoutException
     } else if (table.isClosed) {
-      D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
       D.dprintln("\tClosed!")
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
