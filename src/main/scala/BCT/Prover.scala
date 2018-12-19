@@ -40,8 +40,8 @@ object Prover {
 
 
   var PROVE_TABLE_STEP = 0
-  def proveTable(table : Table, inputClauses : List[PseudoClause], literalMap : Map[(String, Boolean), List[(Int, Int)]], timeout : Long, step : Int = 0, steps : List[Int] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
-    D.dprintln("proveTable(..., " + step + ", " + steps.mkString(">") + ")")
+  def proveTable(table : Table, inputClauses : List[PseudoClause], literalMap : Map[(String, Boolean), List[(Int, Int)]], timeout : Long, steps : List[Int] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
+    D.dprintln("proveTable(..., " + steps.mkString(">") + ")")
     if (!steps.isEmpty)
       println(steps.reverse.mkString(">"))
     PROVE_TABLE_STEP += 1
@@ -51,11 +51,19 @@ object Prover {
       D.dprintln("\tClosed!")
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
-    D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")      
+      // D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
       D.dprintln("\tmax depth!")
       maxDepthReached = true
       None
     } else {
+      val possibleSteps =
+        table.nextBranch.head.lit match {
+          case PositiveLiteral(a) => literalMap((a.predicate, true))
+          case NegativeLiteral(a) => literalMap((a.predicate, false))            
+        }
+
+      println(possibleSteps.length + "/" + inputClauses.map(_.length).sum)
+
       for (step <- 0 to inputClauses.map(_.length).sum) {
         val branch = table.nextBranch
         // Let's find a conflict
@@ -64,7 +72,7 @@ object Prover {
           D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
           D.dprintln(lastAction)
           D.dprintln(handleResult.get.toString)
-          val nextTable = proveTable(handleResult.get, inputClauses, literalMap, timeout, 0, step :: steps)
+          val nextTable = proveTable(handleResult.get, inputClauses, literalMap, timeout, step :: steps)
           if (nextTable.isDefined && nextTable.get.isClosed)
             return nextTable
         }
