@@ -51,9 +51,9 @@ object Benchmarker {
   }  
 
 
-  def testFile(problem : String, timeout : Long) = {
+  def testFile(problem : String, timeout : Long, startClause : Option[Int]) = {
     println("Solving with timeout: " + timeout)
-    D.debug = true
+    D.debug = false
     val Some(pseudoClauses) = Parser.tptp2Internal(problem)
     println("PseudoClauses:")
     for (pc <- pseudoClauses) {
@@ -63,7 +63,7 @@ object Benchmarker {
     val start = System.currentTimeMillis
     try {
       Timer.measure("Prove") {
-        Prover.prove(pseudoClauses, timeout) match {
+        Prover.prove(pseudoClauses, timeout, startClause) match {
           case None => {
             println("Incomplete search")
           }

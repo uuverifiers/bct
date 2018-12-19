@@ -86,7 +86,7 @@ object Prover {
   }
 
 
-  def proveaux(inputClauses : List[PseudoClause], timeout : Long) = {
+  def proveaux(inputClauses : List[PseudoClause], timeout : Long, forcedStartClause : Option[Int]) = {
     D.dprintln("Proving...")
     var result = None : Option[Table]
     var startClause = 0
@@ -119,11 +119,15 @@ object Prover {
 
     // TODO: This is for PUZ001+1.p
     // val startClauses = List(inputClauses(5))// .filter(_.length > 1)
-    val startClauses =
-      if (inputClauses.filter(_.length > 1).isEmpty)
+    val candidateStartClauses = inputClauses.filter(_.length > 1).toList
+
+    val startClauses : List[PseudoClause] =
+      if (forcedStartClause.isDefined)
+        List(candidateStartClauses(forcedStartClause.get))
+      else if (candidateStartClauses.isEmpty)
         List(inputClauses.head)
       else
-        inputClauses.filter(_.length > 1)
+        candidateStartClauses
 
     Timer.measure("Prove") {
       // We have to try all input clauses
@@ -131,7 +135,7 @@ object Prover {
 
         // We need to start with all unit clauses
         val iClause = startClauses(startClause)
-        D.dprintln("<<<Input Clause: " + iClause + ">>>")
+        D.dprintln("<<<Start Clause (" + startClause + "): " + iClause + ">>>")
         val table = Table.create(iClause, unitClauses)
         var searchCompleted = false
         maxDepthReached = false
@@ -151,8 +155,8 @@ object Prover {
     result
   }
 
-  def prove(inputClauses : List[PseudoClause], timeout : Long) = {
-    val result = proveaux(inputClauses, timeout)
+  def prove(inputClauses : List[PseudoClause], timeout : Long, startClause : Option[Int] = None) = {
+    val result = proveaux(inputClauses, timeout, startClause)
     // if (result.isDefined) {
     //   val table = result.get
     //   val model = table.fullModel
