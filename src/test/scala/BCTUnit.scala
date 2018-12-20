@@ -123,27 +123,22 @@ class BCTUnit extends FunSuite with DiagrammedAssertions {
 
   test ("PseudoClause") {
     val Pab = Atom(P, List(a, b))
-    val p_Pab = PositiveLiteral(Pab)
-    val n_Pab = NegativeLiteral(Pab)    
-    val pl_p_Pab = PseudoLiteral(p_Pab)
-    val pl_n_Pab = PseudoLiteral(n_Pab)
+    val lit_p_Pab = PositiveLiteral(Pab)
+    val lit_n_Pab = NegativeLiteral(Pab)    
 
-    val plList = List(pl_p_Pab, pl_n_Pab)
-    val pc = PseudoClause(plList)
+    val lits = List(lit_p_Pab, lit_n_Pab)
+    
+    val pc = PseudoClause(List(), lits, Order.Empty)
     assert(pc.length == 2)
     assert(!pc.isEmpty)
 
-    for ((pla, plb) <- plList zip pc)
+    for ((pla, plb) <- lits zip pc)
       assert(pla == plb)
 
-    val pc2 = PseudoClause(List(pl_p_Pab, pl_n_Pab))
+    val pc2 = PseudoClause(List(), lits, Order.Empty)
     assert(pc == pc2)
 
-    val pc3 = PseudoClause(List(pl_p_Pab))
-    val pc4 = PseudoClause(pl_p_Pab)
-    assert(pc3 == pc4)
-
-    val empty_pc = PseudoClause(List())
+    val empty_pc = PseudoClause(List(), List(), Order.Empty)
     assert(empty_pc == PseudoClause.EmptyPseudoClause)
     assert(empty_pc.isEmpty)
   }
@@ -186,21 +181,23 @@ class BCTUnit extends FunSuite with DiagrammedAssertions {
     // Close simple branch P(a) -> !P(a)
     val pl_a = PseudoLiteral(PositiveLiteral(Atom(P, List(a))))
     val pl_na = PseudoLiteral(NegativeLiteral(Atom(P, List(a))))
-    val branch0 = Branch(List(pl_na), true)
+    val branch0 = Branch(List(pl_na), Order.Empty, true)
     assert(branch0.length == 1)
     assert(!(branch0.tryClose(TIMEOUT)).isDefined)
 
-    val branch1 = branch0.extend(pl_a)
+    val branch1 = branch0.extend(pl_a, Order.Empty)
     assert(branch1.length == 2)
     assert(branch1.tryClose(TIMEOUT).isDefined)
 
     // Close slightly more complex branch P(X,X) -> (f() = a ^ f()=b)::!P(a,b)
     val feq1 = FunEquation(f, List(), a)
-    val feq2 = FunEquation(f, List(), b)    
+    val feq2 = FunEquation(f, List(), b)
+    val order = Order(List(X, a, b))
+
     val br = Branch(List(
       PseudoLiteral(PositiveLiteral(Atom(P, List(X, X)))),
       PseudoLiteral(List(feq1, feq2), NegativeLiteral(Atom(P, List(a,b))))
-    ), true)
+    ), order, true)
     assert(br.tryClose(TIMEOUT).isDefined)
   }
 }

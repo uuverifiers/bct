@@ -21,83 +21,80 @@ class BCTParser extends FunSuite with DiagrammedAssertions {
 
   test ("equiv+1") {
     val pc1 = {
-      val lit1 = PseudoLiteral(NegativeLiteral(Atom("subset/2", List(Ax0, Ax1))))
+      val lit1 = NegativeLiteral(Atom("subset/2", List(Ax0, Ax1)))
 
-      val feq2 = List(FunEquation("union/2", List(Ax0, Ax1), Ex0))
-      val lit2 = PseudoLiteral(feq2, PositiveEquation(Ex0, Ax1))
-      PseudoClause(List(lit1, lit2))
+      val feq2 = FunEquation("union/2", List(Ax0, Ax1), Ex0)
+      val lit2 = PositiveEquation(Ex0, Ax1)
+
+      val order = Order(List(Ax1, Ax0, Ex0))
+      PseudoClause(List(feq2), List(lit1, lit2), order)
     }
+
     assert(List(pc1) == parseFile("equiv+1.p"))
   }
 
-// % {union/2(∀x_0,∀x_1) = ∃c_0::(~member/2(∀x_2,∃c_0))}, {member/2(∀x_2,∀x_0)}, {member/2(∀x_2,∀x_1)}
-// % {(~member/2(∀x_2,∀x_0))}, {union/2(∀x_0,∀x_1) = ∃c_1::member/2(∀x_2,∃c_1)}
-// % {(~member/2(∀x_2,∀x_1))}, {union/2(∀x_0,∀x_1) = ∃c_2::member/2(∀x_2,∃c_2)}
-
   test ("equiv+2") {
     val pc1 = {
-      val feq1 = List(FunEquation("union/2", List(Ax0, Ax1), Ex0))
-      val lit1 = PseudoLiteral(feq1, NegativeLiteral(Atom("member/2", List(Ax2, Ex0))))
+      val feq1 = FunEquation("union/2", List(Ax0, Ax1), Ex0)
+      val lit1 = NegativeLiteral(Atom("member/2", List(Ax2, Ex0)))
 
-      val lit2 = PseudoLiteral(PositiveLiteral(Atom("member/2", List(Ax2, Ax0))))
+      val lit2 = PositiveLiteral(Atom("member/2", List(Ax2, Ax0)))
 
-      val lit3 = PseudoLiteral(PositiveLiteral(Atom("member/2", List(Ax2, Ax1))))
+      val lit3 = PositiveLiteral(Atom("member/2", List(Ax2, Ax1)))
 
-      PseudoClause(List(lit1, lit2, lit3))
+      val order = Order(List(Ax2, Ax1, Ax0, Ex0, Ex1, Ex2))
+      PseudoClause(List(feq1), List(lit1, lit2, lit3), order)
     }
 
     val pc2 = {
-      val lit1 = PseudoLiteral(NegativeLiteral(Atom("member/2", List(Ax2, Ax0))))
+      val lit1 = NegativeLiteral(Atom("member/2", List(Ax2, Ax0)))
 
-      val feq2 = List(FunEquation("union/2", List(Ax0, Ax1), Ex1))
-      val lit2 = PseudoLiteral(feq2, PositiveLiteral(Atom("member/2", List(Ax2, Ex1))))      
+      val feq2 = FunEquation("union/2", List(Ax0, Ax1), Ex1)
 
-      PseudoClause(List(lit1, lit2))
+      val lit2 = PositiveLiteral(Atom("member/2", List(Ax2, Ex1)))
+
+      val order = Order(List(Ax2, Ax1, Ax0, Ex0, Ex1, Ex2))
+
+      PseudoClause(List(feq2), List(lit1, lit2), order)
     }
 
     val pc3 = {
-      val lit1 = PseudoLiteral(NegativeLiteral(Atom("member/2", List(Ax2, Ax1))))
+      val lit1 = NegativeLiteral(Atom("member/2", List(Ax2, Ax1)))
 
-      val feq2 = List(FunEquation("union/2", List(Ax0, Ax1), Ex2))
-      val lit2 = PseudoLiteral(feq2, PositiveLiteral(Atom("member/2", List(Ax2, Ex2))))      
+      val feq2 = FunEquation("union/2", List(Ax0, Ax1), Ex2)
 
-      PseudoClause(List(lit1, lit2))
+      val lit2 = PositiveLiteral(Atom("member/2", List(Ax2, Ex2)))
+
+      val order = Order(List(Ax2, Ax1, Ax0, Ex0, Ex1, Ex2))      
+
+      PseudoClause(List(feq2), List(lit1, lit2), order)
     }        
 
     assert(List(pc1, pc2, pc3) == parseFile("equiv+2.p"))
   }
-  
-
-  // fof(union_defn,axiom,
-  //   ( ! [B,C,D] :
-  //       ( member(D,union(B,C))
-  //     <=> ( member(D,B)
-  //         | member(D,C) ) ) )).
-
-  // [{(~member/2(∀x_2,∀x_0))} v {(~member/2(∀x_2,∀x_1))} v {union/2(∀x_0,∀x_1) = ∃c_3::member/2(∀x_2,∃c_3)}],
-  // [{union/2(∀x_0,∀x_1) = ∃c_2::(~member/2(∀x_2,∃c_2))} v {(~member/2(∀x_2,∀x_0))}]
-  // [{union/2(∀x_0,∀x_1) = ∃c_2::(~member/2(∀x_2,∃c_2))} v {(~member/2(∀x_2,∀x_1))}])
-
 
 
   test ("equiv+3") {
     val pc1 = {
-      val lit1 = PseudoLiteral(NegativeEquation(Ax0, Ax1))
-      val lit2 = PseudoLiteral(PositiveLiteral(Atom("subset/2", List(Ax0, Ax1))))
-      PseudoClause(List(lit1, lit2))
+      val lit1 = NegativeEquation(Ax0, Ax1)
+      val lit2 = PositiveLiteral(Atom("subset/2", List(Ax0, Ax1)))
+      val order = Order(List(Ax1, Ax0))
+      PseudoClause(List(), List(lit1, lit2), order)
     }
     val pc2 = {
-      val lit1 = PseudoLiteral(NegativeEquation(Ax0, Ax1))
-      val lit2 = PseudoLiteral(PositiveLiteral(Atom("subset/2", List(Ax1, Ax0))))
-      PseudoClause(List(lit1, lit2))      
+      val lit1 = NegativeEquation(Ax0, Ax1)
+      val lit2 = PositiveLiteral(Atom("subset/2", List(Ax1, Ax0)))
+      val order = Order(List(Ax1, Ax0))      
+      PseudoClause(List(), List(lit1, lit2), order)
     }
 
     val pc3 = {
-      val lit1 = PseudoLiteral(NegativeLiteral(Atom("subset/2", List(Ax0, Ax1))))
-      val lit2 = PseudoLiteral(NegativeLiteral(Atom("subset/2", List(Ax1, Ax0))))
-      val lit3 = PseudoLiteral(PositiveEquation(Ax0, Ax1))
-      PseudoClause(List(lit1, lit2, lit3))
-    }    
+      val lit1 = PositiveLiteral(Atom("subset/2", List(Ax0, Ax1)))
+      val lit2 = PositiveLiteral(Atom("subset/2", List(Ax1, Ax0)))
+      val lit3 = PositiveEquation(Ax0, Ax1)      
+      val order = Order(List(Ax1, Ax0))      
+      PseudoClause(List(), List(lit1, lit2, lit3), order)
+    }
 
     assert(List(pc1, pc2, pc3) == parseFile("equiv+3.p"))
   }

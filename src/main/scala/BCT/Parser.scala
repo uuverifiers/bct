@@ -11,10 +11,19 @@ object Parser {
   // skolemized existential constants will need a funequation
   type QPair = (Term, List[FunEquation])
 
+  def qpairs2order(qpairs : List[QPair]) : Order = {
+    // println("pairs2order(" + qpairs.mkString(",") + ")")
+    val order = Order(for ((t, feqs) <- qpairs) yield { t })
+    // println("\t" + order)
+    order
+  }
+
   var allCount = -1
   var exCount = -1
   var skolemCount = -1
   var id = -1
+
+  val constants = ListBuffer() : ListBuffer[Term]
 
   def newEx(quantifiers : List[QPair] = List()) : QPair = {
     id += 1
@@ -28,7 +37,9 @@ object Parser {
       (res, List(funEq))
     } else {
       exCount += 1
-      (Term("c_" + exCount, id, false), List())
+      val newTerm = (Term("c_" + exCount, id, false), List())
+      constants += newTerm._1
+      newTerm
     }
   }
 
@@ -61,7 +72,7 @@ object Parser {
     }
   }
 
-  def atom2Internal(pred : ap.terfor.preds.Predicate, args : Seq[ITerm], quantifiers : List[QPair], negated : Boolean = true) : PseudoLiteral = {
+  def atom2Internal(pred : ap.terfor.preds.Predicate, args : Seq[ITerm], quantifiers : List[QPair], negated : Boolean = true) : (Order, List[FunEquation], List[Literal]) = {
     val allEqs = ListBuffer() : ListBuffer[FunEquation]
     val newArgs =
       for (a <- args) yield {
@@ -77,10 +88,11 @@ object Parser {
       else
         PositiveLiteral(atom)
 
-    PseudoLiteral(allEqs.toList, lit)
+
+    (qpairs2order(quantifiers), allEqs.toList, List(lit))
   }
 
-  def eq2Internal(term : ITerm, quantifiers : List[QPair], negated : Boolean = true) : PseudoLiteral = {
+  def eq2Internal(term : ITerm, quantifiers : List[QPair], negated : Boolean = true) : (Order, List[FunEquation], List[Literal]) = {
     val (t1, t2) =
       term match {
         case IPlus(t1, ITimes(ap.basetypes.IdealInt(-1), t2)) => (t1, t2)
@@ -90,27 +102,36 @@ object Parser {
     val (nt1, feq1) = fixTerm(t1, quantifiers)
     val (nt2, feq2) = fixTerm(t2, quantifiers)
 
-    if (negated)
-      PseudoLiteral(feq1 ++ feq2, NegativeEquation(nt1, nt2))
-    else
-      PseudoLiteral(feq1 ++ feq2, PositiveEquation(nt1, nt2))
+    val (feqs, lits) = 
+      if (negated)
+        (feq1 ++ feq2, List(NegativeEquation(nt1, nt2)))
+      else
+        (feq1 ++ feq2, List(PositiveEquation(nt1, nt2)))
+
+    (qpairs2order(quantifiers), feqs, lits)
   }
 
 
-  def toCNF(formula : IFormula, quantifiers : List[QPair]) : List[List[PseudoLiteral]] = {
-    val ret = 
+  //
+  // Returns list of three-tuples (each corresponding to a clause) containing:
+  // - Order of terms in this clasue
+  // - List of funequations (coming from flattening equations
+  //
+  //
+  def toCNF(formula : IFormula, quantifiers : List[QPair]) : List[(Order, List[FunEquation], List[Literal])] = {
+    val ret : List[(Order, List[FunEquation], List[Literal])] = 
       formula match {
         // TODO: Check negations
         case INot(INot(sf)) => toCNF(sf, quantifiers)
 
-        case IBoolLit(true) => List(List(PseudoLiteral(True)))
-        case IBoolLit(false) => List(List(PseudoLiteral(True)))
+        case IBoolLit(true) => List((Order.Empty, List(), List(True)))
+        case IBoolLit(false) => List((Order.Empty, List(), List(False)))          
 
-        case IAtom(pred, args) => List(List(atom2Internal(pred, args, quantifiers, false)))
-        case INot(IAtom(pred, args)) => List(List(atom2Internal(pred, args, quantifiers, true)))
+        case IAtom(pred, args) => List(atom2Internal(pred, args, quantifiers, false))
+        case INot(IAtom(pred, args)) => List(atom2Internal(pred, args, quantifiers, true))
 
-        case IIntFormula(IIntRelation.EqZero, t) => List(List(eq2Internal(t, quantifiers, false)))
-        case INot(IIntFormula(IIntRelation.EqZero, t)) => List(List(eq2Internal(t, quantifiers, true)))
+        case IIntFormula(IIntRelation.EqZero, t) => List(eq2Internal(t, quantifiers, false))
+        case INot(IIntFormula(IIntRelation.EqZero, t)) => List(eq2Internal(t, quantifiers, true))
 
 
 
@@ -119,9 +140,6 @@ object Parser {
 
         case IQuantified(ap.terfor.conjunctions.Quantifier.EX, sf) => toCNF(sf, newEx(quantifiers) :: quantifiers)
         case INot(IQuantified(ap.terfor.conjunctions.Quantifier.ALL, sf)) => toCNF(~sf, newEx(quantifiers) :: quantifiers)
-
-
-        
 
         case INamedPart(_, sf) => toCNF(sf, quantifiers)
         case INot(INamedPart(_, sf)) => toCNF(INot(sf), quantifiers)                    
@@ -132,14 +150,19 @@ object Parser {
 
 
         case IBinFormula(IBinJunctor.Or, sf1, sf2) => {
-          (for (c1 <- toCNF(sf1, quantifiers); c2 <- toCNF(sf2, quantifiers)) yield {
-            c1 ++ c2
+            (for ((order1, feqs1, lits1) <- toCNF(sf1, quantifiers); (order2, feqs2, lits2) <- toCNF(sf2, quantifiers)) yield {
+              val newOrder =
+                if (order1 != order2)
+                  order1 + order2
+                else
+                  order1
+            (newOrder, feqs1 ++ feqs2, lits1 ++ lits2)
           }).toList
         }
         case INot(IBinFormula(IBinJunctor.And, sf1, sf2)) => {
-          (for (c1 <- toCNF(~sf1, quantifiers); c2 <- toCNF(~sf2, quantifiers)) yield {
-            c1 ++ c2
-          }).toList
+          (for ((order1, feqs1, lits1) <- toCNF(sf1, quantifiers); (order2, feqs2, lits2) <- toCNF(sf2, quantifiers)) yield {
+            (order1 + order2, feqs1 ++ feqs2, lits1 ++ lits2)
+          }).toList          
         }
 
 
@@ -159,6 +182,8 @@ object Parser {
     allCount = -1
     exCount = -1
     skolemCount = -1
+    constants.clear()
+
     try {    
       if (fileName contains "+") {
         val reader = new java.io.BufferedReader (
@@ -166,7 +191,12 @@ object Parser {
         val settings = Param.BOOLEAN_FUNCTIONS_AS_PREDICATES.set(ParserSettings.DEFAULT, true)
         val (formula, list, signature) = new TPTPTParser(new Environment, settings)(reader)
         val CNF = toCNF(~formula, List())
-        Some(CNF.map(PseudoClause(_)))
+        // We have a List[List[PseudoLiterals]] which should be a List[PseudoClause] where FunEquations should be pulled up. So we cna have List[(List[FunEquation], List[Literal])]
+        val pseudoClauses =
+          for ((order, feqs, lits) <- CNF) yield {
+            PseudoClause(feqs, lits, order.addConstants(constants.toList))
+          }
+        Some(pseudoClauses)
       } else if (fileName contains "-") {
         // Already in CNF
         // val reader = new java.io.BufferedReader (

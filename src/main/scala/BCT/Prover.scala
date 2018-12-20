@@ -12,6 +12,9 @@ object Prover {
   var maxDepthReached = false
   var lastAction = ""
 
+  var STEPS_IDX = 0
+  val HARD_CODED_STEPS = List((-1,-1))
+
   var PROVE_TABLE_STEP = 0
   def proveTable(table : Table, inputClauses : List[PseudoClause], literalMap : Map[(String, Boolean), List[(Int, Int)]], timeout : Long, steps : List[(Int, Int)] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
     if (!steps.isEmpty)
@@ -36,7 +39,14 @@ object Prover {
           case _ => allSteps
         }
 
+
+      val curTableStep = PROVE_TABLE_STEP
+      D.dprintln("[" + curTableStep + "] Current table")      
+      // D.dprintln(table.toString)
       for ((clause, idx) <- ((-1,-1) :: possibleSteps)) {
+      // for ((clause, idx) <- List(HARD_CODED_STEPS(STEPS_IDX))) {
+        STEPS_IDX += 1
+        // println("[" + curTableStep + "] Checking step (" + steps.length + "): " + ((clause, idx)))
         val branch = table.nextBranch
         val remTime = maxTime - (System.currentTimeMillis - startTime)
 
@@ -54,9 +64,9 @@ object Prover {
           D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + (clause, idx) + ") .... (" + PROVE_TABLE_STEP +")")
           if (clause == -1)
             D.dprintln("Closed directly")
-          else
+          else {
             D.dprintclause(inputClauses(clause), idx)
-          D.dprintln(handleResult.get.toString)
+          }
           val nextTable = proveTable(handleResult.get, inputClauses, literalMap, timeout, (clause,idx) :: steps)
           if (nextTable.isDefined && nextTable.get.isClosed)
             return nextTable
@@ -75,7 +85,7 @@ object Prover {
     startTime = System.currentTimeMillis
 
     // TODO: Begin by trying to close the unit-clause tableaux (with weak connections I guess)
-    val unitClauses = inputClauses.filter(_.length == 1).map(_.head)
+    val unitClauses = inputClauses.filter(_.length == 1).map(_.toPseudoLiterals().head)
 
     if (!unitClauses.isEmpty) {
       D.dprintln("UnitClauses:")
@@ -91,7 +101,7 @@ object Prover {
 
     for ((ic, i) <- inputClauses.zipWithIndex) {
       for ((pl, j) <- ic.zipWithIndex) {
-        pl.lit match {
+        pl match {
           case PositiveLiteral(a) => {
             val key = (a.predicate, false)
             val index = (i, j)
@@ -130,32 +140,31 @@ object Prover {
 
     Timer.measure("Prove") {
       // We have to try all input clauses
-      while (!result.isDefined && startClause < startClauses.length) {
-
-        // We need to start with all unit clauses
-        val iClause = startClauses(startClause)
-        val str = "   Start Clause (" + startClause + "): " + iClause + "   "        
-        D.dboxprintln(str, "YELLOW")
-
-        // D.dprintln("+" + ("-"*str.length) + "+")
-        // D.dprintln("|" + str + "|")
-        // D.dprintln("+" + ("-"*str.length) + "+")        
-
-        val table = Table.create(iClause, unitClauses)
-        var searchCompleted = false
+      var maxDepth = 2
+      maxDepthReached = true
+      while (!result.isDefined && maxDepthReached) {
+        // while (!result.isDefined && startClause < startClauses.length) {
         maxDepthReached = false
-        D.dprintln(table.toString)
-        var maxDepth = 3
-        while (!result.isDefined && !searchCompleted) {
+        maxDepth += 1
+        var startClause = 0
+        while (startClause < startClauses.length && !result.isDefined) {
+          val iClause= startClauses(startClause)
+          val str = "   Start Clause (" + startClause + "): " + iClause + "   "
+          D.dboxprintln(str, "YELLOW")
+
+          // We need to start with all unit clauses          
+          val table = Table.create(iClause, unitClauses)
+          // D.dprintln(table.toString)
+
           result = proveTable(table, inputClauses, literalMap.toMap, timeout)(maxDepth)
-          if (maxDepthReached) {
-            D.dlargeboxprintln("Increasing max depth: " + maxDepth)
-            maxDepth += 1
-          } else {
-            searchCompleted = true
-          }
+          startClause += 1
+            // if (!result.isDefined && maxDepthReached) {
+            //   D.dlargeboxprintln("Increasing max depth: " + maxDepth)
+            //   maxDepth += 1
+            // } else {
+            //   searchCompleted = true
+            // }
         }
-        startClause += 1
       }
     }
 
