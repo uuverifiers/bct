@@ -62,7 +62,10 @@ object Branch {
               val positiveConstraints = for (bc <- breuProblem.positiveBlockingClauses) yield PositiveConstraint(bc)
               val negativeConstraints = for (bc <- breuProblem.negativeBlockingClauses) yield NegativeConstraint(bc)
               val model = breuProblem.getModel
-              val tmpModel : Model = Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap)
+
+              // TODO: Hack to remove min term from model
+              val tmpModel : Model = Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
+
               val fullModel = Model(model)
               Some((tmpModel, fullModel, BlockingConstraints(positiveConstraints ++ negativeConstraints)))
             }
