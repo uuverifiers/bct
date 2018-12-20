@@ -30,7 +30,6 @@ object BCT extends App {
         None
       else
         Some(args(3).toInt)
-    println("TIMEOUT: " + TIMEOUT)
     args(0) match {
       case "dir" => {
         val inputDir = args(1)
