@@ -38,6 +38,7 @@ object D {
   }
 
   def cPrintln(str : String) = {
+    if (debug)
       Console.println(str)    
   }
 
@@ -49,6 +50,11 @@ object D {
         else
           pl.toString
       }
-    cPrintln(clauseStrings.mkString(" v "))
+    val str = pc.funEquations.mkString("^") + " :: " + clauseStrings.mkString(" v ")
+
+    dprintln("+" + ("-"*(MARGIN + (str.length-13) + MARGIN)) + "+")
+    dprintln("|" + (" "*MARGIN) + str + (" "*MARGIN) + "|")
+    dprintln("+" + ("-"*(MARGIN + (str.length-13) + MARGIN)) + "+")
+    
   }
 }
