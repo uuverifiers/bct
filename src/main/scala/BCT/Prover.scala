@@ -12,42 +12,8 @@ object Prover {
   var maxDepthReached = false
   var lastAction = ""
 
-  // Given steps and set of clauses, return which clause and which index to use
-  def litIdx(step : Int, inputClauses : List[PseudoClause], clauseIdx : Int = 0) : (PseudoClause, Int) = {
-    if (step < inputClauses(clauseIdx).length)
-      (inputClauses(clauseIdx), step)
-    else
-      litIdx(step - inputClauses(clauseIdx).length, inputClauses, clauseIdx+1)
-  }
-
-  def litIdxAux(step : Int, inputClauses : List[PseudoClause], clauseIdx : Int = 0) : (Int, Int) = {
-    if (step < inputClauses(clauseIdx).length)
-      (clauseIdx, step)
-    else
-      litIdxAux(step - inputClauses(clauseIdx).length, inputClauses, clauseIdx+1)
-  }  
-
-
-  // // Input: One branch and one step
-  // // Output: If step is not applicable, None, else a tuple with the branch closed and new open branches
-  // def handleStep(table: Table, step : Int, branch : Branch, inputClauses : List[PseudoClause], tableStep : Int) : Option[Table] = {
-  //   // Convert step to Closer
-  //   val remTime = maxTime - (System.currentTimeMillis - startTime)
-  //   if (step == 0) {
-  //     lastAction = "\tclose()"
-  //     table.close(step, remTime)
-  //   } else {
-  //     val (clause, idx) = litIdx(step-1, inputClauses)
-  //     val copiedClause = clause.copy(tableStep.toString)
-  //     lastAction = "Extend and close w. " + copiedClause + " idx " + idx
-  //     D.dprintln("Trying: " + lastAction)
-  //     table.extendAndClose(copiedClause, idx, step, remTime)
-  //   }
-  // }
-
   var PROVE_TABLE_STEP = 0
   def proveTable(table : Table, inputClauses : List[PseudoClause], literalMap : Map[(String, Boolean), List[(Int, Int)]], timeout : Long, steps : List[(Int, Int)] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
-    D.dprintln("proveTable(..., " + steps.mkString(">") + ")")
     if (!steps.isEmpty)
       D.dprintln(steps.reverse.mkString(">"))
     PROVE_TABLE_STEP += 1
@@ -80,14 +46,16 @@ object Prover {
             table.close((-1,-1), remTime)
           } else {
             val copiedClause = inputClauses(clause).copy(PROVE_TABLE_STEP.toString)
-            lastAction = "Extend and close w. " + copiedClause + " idx " + idx
-            D.dprintln("Trying: " + lastAction)
+            // lastAction = "Extend and close w. " + copiedClause + " idx " + idx
             table.extendAndClose(copiedClause, idx, (clause, idx), remTime)
           }
 
         if (handleResult.isDefined) {
           D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + (clause, idx) + ") .... (" + PROVE_TABLE_STEP +")")
-          D.dprintln(lastAction)
+          if (clause == -1)
+            D.dprintln("Closed directly")
+          else
+            D.dprintclause(inputClauses(clause), idx)
           D.dprintln(handleResult.get.toString)
           val nextTable = proveTable(handleResult.get, inputClauses, literalMap, timeout, (clause,idx) :: steps)
           if (nextTable.isDefined && nextTable.get.isClosed)
@@ -100,26 +68,8 @@ object Prover {
 
 
   def proveaux(inputClauses : List[PseudoClause], timeout : Long, forcedStartClause : Option[Int]) = {
-    D.dprintln("Proving...")
     var result = None : Option[Table]
     var startClause = 0
-
-
-    if (D.debug) {
-      val maxStep = inputClauses.map(_.length).sum
-      for (step <- 0 to maxStep) {
-        val str =
-          if (step == 0) {
-            "(-1, -1) close()"
-          } else {
-            val (clause, idx) = litIdx(step-1, inputClauses)
-            val (clauseInt, idxInt) = litIdxAux(step-1, inputClauses)
-            val copiedClause = clause.copy("...")
-            "(" + clauseInt + ", " + idxInt + ") Extend and close w. " + copiedClause + " idx " + idx
-          }
-        D.dprintln(step + "\t" + str)
-      }
-    }
 
     maxTime = timeout
     startTime = System.currentTimeMillis
@@ -127,9 +77,11 @@ object Prover {
     // TODO: Begin by trying to close the unit-clause tableaux (with weak connections I guess)
     val unitClauses = inputClauses.filter(_.length == 1).map(_.head)
 
-    D.dprintln("UnitClauses:")
-    for (uc <- unitClauses)
-      D.dprintln("\t" + uc)
+    if (!unitClauses.isEmpty) {
+      D.dprintln("UnitClauses:")
+      for (uc <- unitClauses)
+        D.dprintln("\t" + uc)
+    }
 
 
     // Lets build up a structure which contains all clauses with a specific literal (and negation)
@@ -160,9 +112,11 @@ object Prover {
       }
     }
 
-    for ((k, v) <- literalMap) {
+
+    D.dboxprintln("LiteralMap")
+    for ((k, v) <- literalMap)
       D.dprintln(k + " -> " + v.mkString(", "))
-    }
+    D.dprintln("\n")
 
     val candidateStartClauses = inputClauses.filter(_.length > 1).toList
 
@@ -180,7 +134,13 @@ object Prover {
 
         // We need to start with all unit clauses
         val iClause = startClauses(startClause)
-        D.dprintln("<<<Start Clause (" + startClause + "): " + iClause + ">>>")
+        val str = "   Start Clause (" + startClause + "): " + iClause + "   "        
+        D.dboxprintln(str, "YELLOW")
+
+        // D.dprintln("+" + ("-"*str.length) + "+")
+        // D.dprintln("|" + str + "|")
+        // D.dprintln("+" + ("-"*str.length) + "+")        
+
         val table = Table.create(iClause, unitClauses)
         var searchCompleted = false
         maxDepthReached = false
@@ -189,7 +149,7 @@ object Prover {
         while (!result.isDefined && !searchCompleted) {
           result = proveTable(table, inputClauses, literalMap.toMap, timeout)(maxDepth)
           if (maxDepthReached) {
-            D.dprintln("Increasing max depth: " + maxDepth)
+            D.dlargeboxprintln("Increasing max depth: " + maxDepth)
             maxDepth += 1
           } else {
             searchCompleted = true

@@ -53,12 +53,18 @@ object Benchmarker {
 
   def testFile(problem : String, timeout : Long, startClause : Option[Int]) = {
     println("Solving with timeout: " + timeout)
-    D.debug = false
+    D.debug = true
     val Some(pseudoClauses) = Parser.tptp2Internal(problem)
-    println("PseudoClauses:")
-    for ((pc, i) <- pseudoClauses.zipWithIndex) {
-      println("(" + i + ")\t" + pc)
-    }
+    val strs = List(
+      "+-------------------+",
+      "|  PseudoClauses:   |",
+      "+-------------------+") ++
+    (for ((pc, i) <- pseudoClauses.zipWithIndex) yield {
+      "(%3d)\t%s".format(i, pc)
+    })
+
+    D.dprintln(strs.mkString("\n"))
+    D.dprintln("\n\n")
 
     val start = System.currentTimeMillis
     try {

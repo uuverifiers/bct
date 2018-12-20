@@ -22,16 +22,17 @@ object Table {
 class Table(openBranches : List[Branch], closedBranches : List[Branch], val steps : List[(Int, Int)] = List(), val partialModel : Model = Model.EmptyModel, val fullModel : Model = Model.EmptyModel, blockingConstraints : BlockingConstraints = BlockingConstraints.Empty)(implicit strong : Boolean = true) {
 
   override def toString =
+    "\ttable\n" + 
     (if (!openBranches.isEmpty)
       "----open----\n" + openBranches.mkString("\n") + "\n"
     else
-      "") +
-    (if (!closedBranches.isEmpty)
-      "---closed---\n" + closedBranches.mkString("\n") + "\n"
-    else
-      "") + "\n" +
-  "steps: " + steps.reverse.mkString(".") + "\n" +
-  "Model: \n" + partialModel
+      "")
+    // (if (!closedBranches.isEmpty)
+    //   "---closed---\n" + closedBranches.mkString("\n") + "\n"
+    // else
+    //   "") + "\n"
+  // "steps: " + steps.reverse.mkString(".") + "\n" +
+  // "Model: \n" + partialModel
 
   
 
