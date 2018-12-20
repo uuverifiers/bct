@@ -107,4 +107,18 @@ object Benchmarker {
       case to : TimeoutException => "TIMEOUT"
     }
   }
+
+  def parseFile(problem : String) = {
+    Parser.tptp2Internal(problem) match {
+      case None => println("Error parsing..")
+      case Some(pseudoClauses) => {
+        println("Parsed")
+        println("PseudoClauses:")
+        for (pc <- pseudoClauses) {
+          println(pc)
+        }
+      }
+    }
+  }
+  
 }

@@ -2,22 +2,8 @@ package bct
 
 
 object BCT extends App {
-
-  def parseFile(problem : String) = {
-    Parser.tptp2Internal(problem) match {
-      case None => println("Error parsing..")
-      case Some(pseudoClauses) => {
-        println("Parsed")
-        println("PseudoClauses:")
-        for (pc <- pseudoClauses) {
-          println(pc)
-        }
-      }
-    }
-  }
-
   if (args.length < 2) {
-    println("Usage: [dir|file] path [timeout] [startClause]")
+    println("Usage: [dir|file|parse] path [timeout] [startClause]")
   } else {
     val TIMEOUT =
       if (args.length < 3)
@@ -43,6 +29,10 @@ object BCT extends App {
       }
       case "file" => {
         Benchmarker.testFile(args(1), TIMEOUT, START_CLAUSE)
+      }
+
+      case "parse" => {
+        Benchmarker.parseFile(args(1))
       }
     }
   }
