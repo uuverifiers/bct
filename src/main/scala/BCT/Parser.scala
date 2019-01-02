@@ -184,38 +184,25 @@ object Parser {
     skolemCount = -1
     constants.clear()
 
-    try {
-      // TODO: Disable tptp name check
-      // if (fileName contains "+") {
-        val reader = new java.io.BufferedReader (
+    // TODO: Do we need to check TPTP names
+    val reader =
+      try {
+        new java.io.BufferedReader (
           new java.io.FileReader(new java.io.File (fileName)))
-        val settings = Param.BOOLEAN_FUNCTIONS_AS_PREDICATES.set(ParserSettings.DEFAULT, true)
-        val (formula, list, signature) = new TPTPTParser(new Environment, settings)(reader)
-        val CNF = toCNF(~formula, List())
-        // We have a List[List[PseudoLiterals]] which should be a List[PseudoClause] where FunEquations should be pulled up. So we cna have List[(List[FunEquation], List[Literal])]
-        val pseudoClauses =
-          for ((order, feqs, lits) <- CNF) yield {
-            PseudoClause(feqs, lits, order.addConstants(constants.toList))
-          }
-        Some(pseudoClauses)
-      // } else if (fileName contains "-") {
-      //   // Already in CNF
-      //   // val reader = new java.io.BufferedReader (
-      //   //   new java.io.FileReader(new java.io.File (fileName)))
-      //   // val settings = Param.BOOLEAN_FUNCTIONS_AS_PREDICATES.set(ParserSettings.DEFAULT, true)
-      //   // val (formula, list, signature) = new TPTPTParser(new Environment, settings)(reader)
-      //   // Some(formula2Internal(formula))
-      //   println("CNF problems must be checked with skolem constants.")
-      //   None
-      // } else {
-      //   println("Only TPTP problems with '+' or '-' supported.")
-      //   None
-      // }
-    } catch {
-      case e : java.io.FileNotFoundException =>  {
-        println("File \"" + fileName + "\" not found.")
-        None
+      } catch {
+        case e : java.io.FileNotFoundException =>  {
+          println("File \"" + fileName + "\" not found.")
+          return None
+        }
       }
-    }
+
+    val settings = Param.BOOLEAN_FUNCTIONS_AS_PREDICATES.set(ParserSettings.DEFAULT, true)
+    val (formula, list, signature) = new TPTPTParser(new Environment, settings)(reader)
+    val CNF = toCNF(~formula, List())
+    val pseudoClauses =
+      for ((order, feqs, lits) <- CNF) yield {
+        PseudoClause(feqs, lits, order.addConstants(constants.toList))
+      }
+    Some(pseudoClauses)
   }
 }
