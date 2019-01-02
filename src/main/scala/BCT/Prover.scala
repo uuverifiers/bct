@@ -6,7 +6,6 @@ class TimeoutException extends Exception
 
 object Prover {
   var startTime : Long = 0
-  var maxTime : Long = 0
   var maxDepthReached = false
   var PROVE_TABLE_STEP = 0
 
@@ -14,7 +13,6 @@ object Prover {
     table : Table,
     inputClauses : List[PseudoClause],
     literalMap : Map[(String, Boolean), List[(Int, Int)]],
-    timeout : Long,
     steps : List[(Int, Int)] = List()
   )(implicit MAX_DEPTH : Int) : Option[Table] = {
     PROVE_TABLE_STEP += 1
@@ -22,7 +20,7 @@ object Prover {
     if (!steps.isEmpty)
       D.dprintln(steps.reverse.mkString(">"))
 
-    if (System.currentTimeMillis - startTime > timeout)
+    if (System.currentTimeMillis - startTime > Settings.timeout)
       throw new TimeoutException
 
     if (table.isClosed) {
@@ -49,7 +47,7 @@ object Prover {
 
       for ((clause, idx) <- ((-1,-1) :: possibleSteps)) {
         val branch = table.nextBranch
-        val remTime = maxTime - (System.currentTimeMillis - startTime)
+        val remTime = Settings.timeout - (System.currentTimeMillis - startTime)
 
         val handleResult = 
           if (clause == -1) {
@@ -72,7 +70,6 @@ object Prover {
             handleResult.get,
             inputClauses,
             literalMap,
-            timeout,
             (clause,idx) :: steps) match {
             case Some(nextTable) if nextTable.isClosed => return Some(nextTable)
             case _ => ()
@@ -84,11 +81,10 @@ object Prover {
   }
 
 
-  def proveaux(inputClauses : List[PseudoClause], timeout : Long, forcedStartClause : Option[Int]) = {
+  def prove(inputClauses : List[PseudoClause]) = {
     var result = None : Option[Table]
     var startClause = 0
 
-    maxTime = timeout
     startTime = System.currentTimeMillis
 
     // TODO: Begin by trying to close the unit-clause tableaux (with weak connections I guess)
@@ -132,8 +128,8 @@ object Prover {
     val candidateStartClauses = inputClauses.filter(_.length > 1).toList
 
     val startClauses : List[PseudoClause] =
-      if (forcedStartClause.isDefined)
-        List(candidateStartClauses(forcedStartClause.get))
+      if (Settings.start_clause.isDefined)
+        List(candidateStartClauses(Settings.start_clause.get))
       else if (candidateStartClauses.isEmpty)
         List(inputClauses.head)
       else
@@ -157,15 +153,11 @@ object Prover {
           val table = Table.create(iClause, unitClauses)
           // D.dprintln(table.toString)
 
-          result = proveTable(table, inputClauses, literalMap.toMap, timeout)(maxDepth)
+          result = proveTable(table, inputClauses, literalMap.toMap)(maxDepth)
           startClause += 1
         }
       }
     }
     result
-  }
-
-  def prove(inputClauses : List[PseudoClause], timeout : Long, startClause : Option[Int] = None) = {
-    proveaux(inputClauses, timeout, startClause)
   }
 }

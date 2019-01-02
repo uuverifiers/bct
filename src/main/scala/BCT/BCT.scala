@@ -11,9 +11,7 @@ object BCT extends App {
   //
   // OPTIONS
   //
-  var timeout = 5000
-  var regularity = false
-  var start_clause = None : Option[Int]
+
 
   def handleArguments(args : List[String]) : Unit = {
     val timeoutR = "-(timeout|to)=(\\d+)".r
@@ -22,12 +20,12 @@ object BCT extends App {
 
     if (!args.isEmpty) {
       args.head match {
-        case timeoutR(_, time) => timeout = time.toInt
+        case timeoutR(_, time) => Settings.timeout = time.toInt
 
-        case regularityR("+") => regularity = true
-        case regularityR("-") => regularity = false
+        case regularityR("+") => Settings.regularity = true
+        case regularityR("-") => Settings.regularity = false
 
-        case startClauseR(idx) => start_clause = Some(idx.toInt)
+        case startClauseR(idx) => Settings.start_clause = Some(idx.toInt)
 
         case str => inputBuffer += str
       }
@@ -39,15 +37,14 @@ object BCT extends App {
 
   val inputs = inputBuffer.toList.reverse  
 
+  Settings.print()
 
-  println("TIMEOUT: " + timeout)
-  println("REGULARITY: " + regularity)
   println("INPUTS:")
   for (i <- inputs)
     println("\t" + i)
 
   for (i <- inputs) {
-    Benchmarker.testFile(i, timeout, start_clause)
+    Benchmarker.testFile(i)
   }
 
 

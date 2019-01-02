@@ -11,48 +11,48 @@ import scala.collection.mutable.{Map => MMap}
 
 object Benchmarker {
 
-  def testDir(dir : String, output : String, timeout : Long) = {
-    val directory = new File(dir)
-    val problems = directory.listFiles.map(_.toString)
-    val problemCount = problems.length
+  // def testDir(dir : String, output : String, timeout : Long) = {
+  //   val directory = new File(dir)
+  //   val problems = directory.listFiles.map(_.toString)
+  //   val problemCount = problems.length
 
-    // FileWriter
-    val file = new File(output)
-    val bw = new BufferedWriter(new FileWriter(file))
+  //   // FileWriter
+  //   val file = new File(output)
+  //   val bw = new BufferedWriter(new FileWriter(file))
 
-    var no = 0
-    for (problem <- problems) {
-      no += 1
-      println(problem + "(" + no + "/" + problemCount + ")")
-      val pseudoClauses = Parser.tptp2Internal(problem)
-      if (!pseudoClauses.isDefined) {
-        println("File \"" + problem + "\" not found.")
-      } else {
-        val start = System.currentTimeMillis
-        val result = 
-          try {
-            Prover.prove(pseudoClauses.get, timeout) match {
-              case None => "unknown"
-              case Some(table) => "sat"
-            }
-          } catch {
-            case to : TimeoutException => "timeout"
-            case e : Exception => "error"
-          }
+  //   var no = 0
+  //   for (problem <- problems) {
+  //     no += 1
+  //     println(problem + "(" + no + "/" + problemCount + ")")
+  //     val pseudoClauses = Parser.tptp2Internal(problem)
+  //     if (!pseudoClauses.isDefined) {
+  //       println("File \"" + problem + "\" not found.")
+  //     } else {
+  //       val start = System.currentTimeMillis
+  //       val result = 
+  //         try {
+  //           Prover.prove(pseudoClauses.get, timeout) match {
+  //             case None => "unknown"
+  //             case Some(table) => "sat"
+  //           }
+  //         } catch {
+  //           case to : TimeoutException => "timeout"
+  //           case e : Exception => "error"
+  //         }
 
-        println("RESULT: " + result)
-        val stop = System.currentTimeMillis
-        bw.write(List(problem, result, (stop - start).toString).mkString(",") + "\n")
-        bw.flush()
-      }
-    }
+  //       println("RESULT: " + result)
+  //       val stop = System.currentTimeMillis
+  //       bw.write(List(problem, result, (stop - start).toString).mkString(",") + "\n")
+  //       bw.flush()
+  //     }
+  //   }
 
-    bw.close()    
-  }  
+  //   bw.close()    
+  // }
+  
 
 
-  def testFile(problem : String, timeout : Long, startClause : Option[Int]) = {
-    println("Solving with timeout: " + timeout)
+  def testFile(problem : String) = {
     D.debug = true
     val Some(pseudoClauses) = Parser.tptp2Internal(problem)
     val strs = List(
@@ -69,7 +69,7 @@ object Benchmarker {
     val start = System.currentTimeMillis
     try {
       Timer.measure("Prove") {
-        Prover.prove(pseudoClauses, timeout, startClause) match {
+        Prover.prove(pseudoClauses) match {
           case None => {
             println("Incomplete search")
           }
@@ -94,31 +94,31 @@ object Benchmarker {
     println((stop - start) + "ms")
   }
 
-  def run(p : String, timeout : Long) : String = {
-    D.debug = false
-    val Some(pseudoClauses) = Parser.tptp2Internal(p)
+  // def run(p : String, timeout : Long) : String = {
+  //   D.debug = false
+  //   val Some(pseudoClauses) = Parser.tptp2Internal(p)
 
-    try {
-      Prover.prove(pseudoClauses, timeout) match {
-        case Some(_) => "SAT"
-        case None => "UNKNOWN"
-      }
-    } catch {
-      case to : TimeoutException => "TIMEOUT"
-    }
-  }
+  //   try {
+  //     Prover.prove(pseudoClauses, timeout) match {
+  //       case Some(_) => "SAT"
+  //       case None => "UNKNOWN"
+  //     }
+  //   } catch {
+  //     case to : TimeoutException => "TIMEOUT"
+  //   }
+  // }
 
-  def parseFile(problem : String) = {
-    Parser.tptp2Internal(problem) match {
-      case None => println("Error parsing..")
-      case Some(pseudoClauses) => {
-        println("Parsed")
-        println("PseudoClauses:")
-        for (pc <- pseudoClauses) {
-          println(pc)
-        }
-      }
-    }
-  }
+  // def parseFile(problem : String) = {
+  //   Parser.tptp2Internal(problem) match {
+  //     case None => println("Error parsing..")
+  //     case Some(pseudoClauses) => {
+  //       println("Parsed")
+  //       println("PseudoClauses:")
+  //       for (pc <- pseudoClauses) {
+  //         println(pc)
+  //       }
+  //     }
+  //   }
+  // }
   
 }
