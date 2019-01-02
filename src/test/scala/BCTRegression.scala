@@ -7,7 +7,7 @@ import scala.io.Source
 
 class Regression extends FunSpec {
 
-  val TIMEOUT = 5000
+  Settings.timeout = 5000
 
   def getListOfFiles(dir: File, extensions: List[String]): List[File] = {
     dir.listFiles.filter(_.isFile).toList.filter { file =>
@@ -21,7 +21,7 @@ class Regression extends FunSpec {
   describe("SAT") {
     for (f <- satFiles) {
       it(f.getName()) {
-        val ret = Benchmarker.run(f.toString, TIMEOUT)
+        val ret = Benchmarker.run(f.toString)
         assert(ret == "SAT")
       }
     }
@@ -33,7 +33,7 @@ class Regression extends FunSpec {
   // describe("UNKNOWN") {
   //   for (f <- unknownFiles) {      
   //     it(f.getName()) {
-  //       val ret = Benchmarker.run(f.toString, TIMEOUT)
+  //       val ret = Benchmarker.run(f.toString)
   //       assert(ret == "UNKNOWN")
   //     }
   //   }    
@@ -45,7 +45,7 @@ class Regression extends FunSpec {
   // describe("TIMEOUT") {
   //   for (f <- timeoutFiles) {      
   //     it(f.getName()) {
-  //       val ret = Benchmarker.run(f.toString, TIMEOUT)
+  //       val ret = Benchmarker.run(f.toString)
   //       assert(ret == "TIMEOUT")
   //     }
   //   }    

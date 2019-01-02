@@ -4,10 +4,9 @@ import Console.{GREEN, RED, RESET, YELLOW, UNDERLINED}
 
 object D {
   val MARGIN = 2
-  var debug = false
   var breuCount = 0
   def dprint(str : String) =
-    if (debug) print(str)
+    if (Settings.debug) print(str)
 
   val GREEN = Console.GREEN
   val YELLOW = Console.YELLOW
@@ -38,7 +37,7 @@ object D {
   }
 
   def cPrintln(str : String) = {
-    if (debug)
+    if (Settings.debug)
       Console.println(str)    
   }
 

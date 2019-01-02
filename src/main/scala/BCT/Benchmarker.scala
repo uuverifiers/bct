@@ -52,8 +52,7 @@ object Benchmarker {
   
 
 
-  def testFile(problem : String) = {
-    D.debug = true
+  def run(problem : String) : String = {
     val Some(pseudoClauses) = Parser.tptp2Internal(problem)
     val strs = List(
       "+-------------------+",
@@ -69,29 +68,36 @@ object Benchmarker {
     val start = System.currentTimeMillis
     try {
       Timer.measure("Prove") {
-        Prover.prove(pseudoClauses) match {
+        val ret = Prover.prove(pseudoClauses)
+        val stop = System.currentTimeMillis
+        if (Settings.debug) {
+          println(Timer)
+          println((stop - start) + "ms")
+        }
+        ret match {
           case None => {
-            println("Incomplete search")
+            D.dprintln("Incomplete search")
+            "UNKNOWN"
           }
           case Some(table) => {
-            println(table)
+            D.dprintln(table.toString)
+            "SAT"
           }
         }
       }
+
     } catch {
       case to : TimeoutException => {
-        println("Timeout")
+        D.dprintln("Timeout")
+        "TIMEOUT"
       }
 
       case e : Exception => {
         println("Exception: " + e)
         e.printStackTrace()
+        "ERROR"
       }
     }
-    
-    val stop = System.currentTimeMillis
-    println(Timer)
-    println((stop - start) + "ms")
   }
 
   // def run(p : String, timeout : Long) : String = {

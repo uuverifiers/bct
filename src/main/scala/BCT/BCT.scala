@@ -17,6 +17,7 @@ object BCT extends App {
     val timeoutR = "-(timeout|to)=(\\d+)".r
     val regularityR = "(\\+|-)regularity".r
     val startClauseR = "-start-clause=(\\d+)".r
+    val debugR = "(\\+|-)debug".r
 
     if (!args.isEmpty) {
       args.head match {
@@ -24,6 +25,9 @@ object BCT extends App {
 
         case regularityR("+") => Settings.regularity = true
         case regularityR("-") => Settings.regularity = false
+
+        case debugR("+") => Settings.debug = true
+        case debugR("-") => Settings.debug = false          
 
         case startClauseR(idx) => Settings.start_clause = Some(idx.toInt)
 
@@ -44,7 +48,7 @@ object BCT extends App {
     println("\t" + i)
 
   for (i <- inputs) {
-    Benchmarker.testFile(i)
+    println(Benchmarker.run(i))
   }
 
 
