@@ -8,8 +8,6 @@ object Prover {
   var startTime : Long = 0
   var maxTime : Long = 0
   var maxDepthReached = false
-  var lastAction = ""
-  var STEPS_IDX = 0
 
   var PROVE_TABLE_STEP = 0
   def proveTable(
@@ -31,13 +29,15 @@ object Prover {
       D.dprintln("\tClosed!")
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
-      // D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + step + ") .... (" + PROVE_TABLE_STEP +")")
       D.dprintln("\tmax depth!")
       maxDepthReached = true
       None
     } else {
 
-      val allSteps = (for (ic <- inputClauses.indices; idx <- 0 until inputClauses(ic).length) yield { (ic, idx) }).toList
+      val allSteps =
+        (for (ic <- inputClauses.indices; idx <- 0 until inputClauses(ic).length) yield {
+          (ic, idx)
+        }).toList
       val possibleSteps =
         table.nextBranch.head.lit match {
           case PositiveLiteral(a) => literalMap((a.predicate, true))
@@ -48,30 +48,32 @@ object Prover {
       D.dprintln("[" + PROVE_TABLE_STEP + "] Current table")      
 
       for ((clause, idx) <- ((-1,-1) :: possibleSteps)) {
-        STEPS_IDX += 1
-        // println("[" + curTableStep + "] Checking step (" + steps.length + "): " + ((clause, idx)))
         val branch = table.nextBranch
         val remTime = maxTime - (System.currentTimeMillis - startTime)
 
         val handleResult = 
           if (clause == -1) {
-            lastAction = "\tclose()"
             table.close(remTime)
           } else {
             val copiedClause = inputClauses(clause).copy(PROVE_TABLE_STEP.toString)
-            // lastAction = "Extend and close w. " + copiedClause + " idx " + idx
             table.extendAndClose(copiedClause, idx, (clause, idx), remTime)
           }
 
         if (handleResult.isDefined) {
-          D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + (clause, idx) + ") .... (" + PROVE_TABLE_STEP +")")
+          D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " +
+            (clause, idx) + ") .... (" + PROVE_TABLE_STEP +")")
 
           if (clause == -1)
             D.dprintln("Closed directly")
           else 
             D.dprintclause(inputClauses(clause), idx)
 
-          proveTable(handleResult.get, inputClauses, literalMap, timeout, (clause,idx) :: steps) match {
+          proveTable(
+            handleResult.get,
+            inputClauses,
+            literalMap,
+            timeout,
+            (clause,idx) :: steps) match {
             case Some(nextTable) if nextTable.isClosed => return Some(nextTable)
             case _ => ()
           }
