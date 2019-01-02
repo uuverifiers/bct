@@ -140,7 +140,7 @@ object Prover {
 
     Timer.measure("Prove") {
       // We have to try all input clauses
-      var maxDepth = 2
+      var maxDepth = 5
       maxDepthReached = true
       while (!result.isDefined && maxDepthReached) {
         // while (!result.isDefined && startClause < startClauses.length) {
