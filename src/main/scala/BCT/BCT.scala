@@ -7,7 +7,7 @@ object BCT extends App {
   } else {
     val TIMEOUT =
       if (args.length < 3)
-        5000
+        60000
       else
         args(2).toLong
 
