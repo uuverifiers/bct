@@ -1,4 +1,3 @@
-
 package bct
 
 /*
@@ -212,30 +211,12 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], order : Order, val isClo
   def tryClose(remTime : Long) = Branch.tryClose(this, List(), BlockingConstraints.Empty, remTime)
 
   def extend(pl : PseudoLiteral, augOrder : Order) = {
-
     val newOrder = order + augOrder    
-    val ret = Branch(pl :: pseudoLiterals, newOrder, isClosed, strong)
-
-    // println("<<<EXTEND>>>")
-    // println(this)
-    // println("\t with")
-    // println(pl)
-    // println("\t using order")
-    // println(augOrder)
-
-    // println("-"*20)
-    // println(order)
-    // println(" => ")
-    // println(newOrder)
-    // println("\t yield")
-    // println(ret)
-    ret
+    Branch(pl :: pseudoLiterals, newOrder, isClosed, strong)
   }
-
 
   lazy val regularityConstraints : BlockingConstraints = {
     val h = pseudoLiterals.head
-
     BlockingConstraints(
       for (pl <- pseudoLiterals.tail; if (h.lit.regularityConstraint(pl.lit).isDefined))
       yield h.lit.regularityConstraint(pl.lit).get

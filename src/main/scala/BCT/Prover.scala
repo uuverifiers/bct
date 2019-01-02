@@ -2,8 +2,6 @@ package bct
 
 import scala.collection.mutable.{Map => MMap}
 
-// TODO: Insert assertions
-
 class TimeoutException extends Exception
 
 object Prover {
@@ -11,18 +9,25 @@ object Prover {
   var maxTime : Long = 0
   var maxDepthReached = false
   var lastAction = ""
-
   var STEPS_IDX = 0
-  val HARD_CODED_STEPS = List((-1,-1))
 
   var PROVE_TABLE_STEP = 0
-  def proveTable(table : Table, inputClauses : List[PseudoClause], literalMap : Map[(String, Boolean), List[(Int, Int)]], timeout : Long, steps : List[(Int, Int)] = List())(implicit MAX_DEPTH : Int) : Option[Table] = {
+  def proveTable(
+    table : Table,
+    inputClauses : List[PseudoClause],
+    literalMap : Map[(String, Boolean), List[(Int, Int)]],
+    timeout : Long,
+    steps : List[(Int, Int)] = List()
+  )(implicit MAX_DEPTH : Int) : Option[Table] = {
+    PROVE_TABLE_STEP += 1
+
     if (!steps.isEmpty)
       D.dprintln(steps.reverse.mkString(">"))
-    PROVE_TABLE_STEP += 1
-    if (System.currentTimeMillis - startTime > timeout) {
+
+    if (System.currentTimeMillis - startTime > timeout)
       throw new TimeoutException
-    } else if (table.isClosed) {
+
+    if (table.isClosed) {
       D.dprintln("\tClosed!")
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
@@ -31,6 +36,7 @@ object Prover {
       maxDepthReached = true
       None
     } else {
+
       val allSteps = (for (ic <- inputClauses.indices; idx <- 0 until inputClauses(ic).length) yield { (ic, idx) }).toList
       val possibleSteps =
         table.nextBranch.head.lit match {
@@ -39,12 +45,9 @@ object Prover {
           case _ => allSteps
         }
 
+      D.dprintln("[" + PROVE_TABLE_STEP + "] Current table")      
 
-      val curTableStep = PROVE_TABLE_STEP
-      D.dprintln("[" + curTableStep + "] Current table")      
-      // D.dprintln(table.toString)
       for ((clause, idx) <- ((-1,-1) :: possibleSteps)) {
-      // for ((clause, idx) <- List(HARD_CODED_STEPS(STEPS_IDX))) {
         STEPS_IDX += 1
         // println("[" + curTableStep + "] Checking step (" + steps.length + "): " + ((clause, idx)))
         val branch = table.nextBranch
@@ -62,14 +65,16 @@ object Prover {
 
         if (handleResult.isDefined) {
           D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " + (clause, idx) + ") .... (" + PROVE_TABLE_STEP +")")
+
           if (clause == -1)
             D.dprintln("Closed directly")
-          else {
+          else 
             D.dprintclause(inputClauses(clause), idx)
+
+          proveTable(handleResult.get, inputClauses, literalMap, timeout, (clause,idx) :: steps) match {
+            case Some(nextTable) if nextTable.isClosed => return Some(nextTable)
+            case _ => ()
           }
-          val nextTable = proveTable(handleResult.get, inputClauses, literalMap, timeout, (clause,idx) :: steps)
-          if (nextTable.isDefined && nextTable.get.isClosed)
-            return nextTable
         }
       }
       None
@@ -96,9 +101,7 @@ object Prover {
 
     // Lets build up a structure which contains all clauses with a specific literal (and negation)
     // Map[Predicate, Negated] => List((Int, Int))
-
     val literalMap = MMap() : MMap[(String, Boolean), List[(Int, Int)]]
-
     for ((ic, i) <- inputClauses.zipWithIndex) {
       for ((pl, j) <- ic.zipWithIndex) {
         pl match {
@@ -112,16 +115,12 @@ object Prover {
             val index = (i, j)
             literalMap += key -> (index :: literalMap.getOrElse(key, List()))            
           }
-
-            // TODO: What to do with these?
-          case PositiveEquation(lhs, rhs) => {
-          }
-          case NegativeEquation(lhs, rhs) => {
-          }            
+          // TODO: What to do with these?
+          case PositiveEquation(lhs, rhs) => {}
+          case NegativeEquation(lhs, rhs) => {}            
         }
       }
     }
-
 
     D.dboxprintln("LiteralMap")
     for ((k, v) <- literalMap)
@@ -158,32 +157,13 @@ object Prover {
 
           result = proveTable(table, inputClauses, literalMap.toMap, timeout)(maxDepth)
           startClause += 1
-            // if (!result.isDefined && maxDepthReached) {
-            //   D.dlargeboxprintln("Increasing max depth: " + maxDepth)
-            //   maxDepth += 1
-            // } else {
-            //   searchCompleted = true
-            // }
         }
       }
     }
-
     result
   }
 
   def prove(inputClauses : List[PseudoClause], timeout : Long, startClause : Option[Int] = None) = {
-    val result = proveaux(inputClauses, timeout, startClause)
-    // if (result.isDefined) {
-    //   val table = result.get
-    //   val model = table.fullModel
-    //   val patchedModel = Model(
-    //     for ((t, v) <- model.assignments) yield {
-    //       if (t.isUniversal && t == v)
-    //         t -> Order.MIN_TERM
-    //       else
-    //         t -> v
-    //     })
-    // }
-    result
+    proveaux(inputClauses, timeout, startClause)
   }
 }
