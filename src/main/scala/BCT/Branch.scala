@@ -30,7 +30,11 @@ object Branch {
   type Equation = (String, List[Term], Term)
   type Goal = List[List[(Term, Term)]]
 
-  def tryClose(testBranch : Branch, branches : List[Branch], blockingConstraints : BlockingConstraints, maxTime : Long) : (Option[(Model, Model, BlockingConstraints)]) = {
+  def tryClose(
+    testBranch : Branch,
+    branches : List[Branch],
+    blockingConstraints : BlockingConstraints,
+    maxTime : Long) : (Option[(Model, Model, BlockingConstraints)]) = {
     val testProblem = testBranch.toBreu
     val subProblems = branches.map(_.toBreu)
     if ((testProblem :: subProblems) contains None) {
@@ -55,27 +59,36 @@ object Branch {
       val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
       val (_, regularityConstraints) = testBranch.regularityConstraints.toBlockingClauses()
       try {
-        val breuProblem = breuSolver.createProblem(domains.domains, breuGoals, breuEqs, posBlockingClauses, negBlockingClauses ++ regularityConstraints)
-        // D.dprintln(breuProblem.toString)
+        val breuProblem =
+          breuSolver.createProblem(
+            domains.domains,
+            breuGoals,
+            breuEqs,
+            posBlockingClauses,
+            negBlockingClauses ++ regularityConstraints)
+
         if (D.debug) {
           D.breuCount += 1
           val filename = "BREU_PROBLEMS/" + D.breuCount + ".breu"
           breuProblem.saveToFile(filename)
-          // D.dprintln("Saved to: " + filename)
         }
 
         Timer.measure("BREU") {
           breuProblem.solve(maxTime) match {
             case breu.Result.SAT => {
-              val positiveConstraints = for (bc <- breuProblem.positiveBlockingClauses) yield PositiveConstraint(bc)
-              val negativeConstraints = for (bc <- breuProblem.negativeBlockingClauses) yield NegativeConstraint(bc)
+              val positiveConstraints =
+                for (bc <- breuProblem.positiveBlockingClauses) yield UnificationConstraint(bc)
+              val negativeConstraints =
+                for (bc <- breuProblem.negativeBlockingClauses) yield DisunificationConstraint(bc)
               val model = breuProblem.getModel
+              val newBc = BlockingConstraints(positiveConstraints ++ negativeConstraints)
 
               // TODO: Hack to remove min term from model
-              val tmpModel : Model = Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
+              val tmpModel : Model =
+                Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
 
               val fullModel = Model(model)
-              Some((tmpModel, fullModel, BlockingConstraints(positiveConstraints ++ negativeConstraints)))
+              Some((tmpModel, fullModel, newBc))
             }
             case breu.Result.UNSAT | breu.Result.UNKNOWN => {
               None
@@ -96,14 +109,17 @@ object Branch {
 }
 
 
-case class Branch(pseudoLiterals : List[PseudoLiteral], order : Order, val isClosed : Boolean, val strong : Boolean) extends Iterable[PseudoLiteral] {
+case class Branch(
+  pseudoLiterals : List[PseudoLiteral],
+  order : Order,
+  val isClosed : Boolean,
+  val strong : Boolean) extends Iterable[PseudoLiteral] {
   assert(pseudoLiterals.length > 0)
   def length = pseudoLiterals.length
   def depth = pseudoLiterals.length
-
   def iterator = pseudoLiterals.iterator
-
-  override def toString() = pseudoLiterals.mkString("<-") + " || " + order + " || " + conflicts.mkString(" v ")
+  override def toString() =
+    pseudoLiterals.mkString("<-") + " || " + order + " || " + conflicts.mkString(" v ")
 
   lazy val closed = Branch(pseudoLiterals, order, true, strong)
   lazy val weak = Branch(pseudoLiterals, order, isClosed, false)
@@ -118,7 +134,8 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], order : Order, val isClo
 
       // Three cases:
       // (1) First node is an inequality, then this inequality must be part of the conflict
-      // (2) First node is Positive/NegativeLiteral, second node is an equality, then first node must be in conflict (using equality)
+      // (2) First node is Positive/NegativeLiteral,
+      //     second node is an equality, then first node must be in conflict (using equality)
       // (3) First and second node is a Positive/NegativeLiteral, then they must be in conflict
 
       if (n1.lit.isNegativeEquation) {
@@ -157,9 +174,7 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], order : Order, val isClo
 
 
   lazy val funEquations = {
-    (for (pl <- pseudoLiterals) yield {
-      pl.funEquations
-    }).flatten
+    pseudoLiterals.map(_.funEquations).flatten
   }
 
   lazy val equations = pseudoLiterals.map(_.lit).filter(_.isPositiveEquation)
@@ -192,7 +207,8 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], order : Order, val isClo
       val breuFlatEqs1 =
         (for (PositiveEquation(lhs, rhs) <- eqs) yield {
           nextDummyPredicate += 1
-          List(("dummy_predicate_" + nextDummyPredicate, List(), lhs), ("dummy_predicate_" + nextDummyPredicate, List(), rhs))
+          val newPred = "dummy_predicate_" + nextDummyPredicate
+          List((newPred, List(), lhs), (newPred, List(), rhs))
         }).flatten
 
       val breuFlatEqs2 =
@@ -205,10 +221,6 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], order : Order, val isClo
       Some((breuDomains, breuFlatEqs1 ++ breuFlatEqs2, breuGoals))
     }
   }
-
-  def tryClose(blockingConstraints : BlockingConstraints = BlockingConstraints.Empty, remTime : Long) = Branch.tryClose(this, List(), blockingConstraints, remTime)
-
-  def tryClose(remTime : Long) = Branch.tryClose(this, List(), BlockingConstraints.Empty, remTime)
 
   def extend(pl : PseudoLiteral, augOrder : Order) = {
     val newOrder = order + augOrder    
@@ -228,4 +240,7 @@ case class Branch(pseudoLiterals : List[PseudoLiteral], order : Order, val isClo
     val newPseudoLiterals = pseudoLiterals.map(_.instantiate(model))
     Branch(newPseudoLiterals, order, isClosed, strong)
   }
+  def tryClose(maxTime : Long) =
+    Branch.tryClose(this, List(), BlockingConstraints.Empty, maxTime)
+
 }

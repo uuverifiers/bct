@@ -39,15 +39,15 @@ class Regression extends FunSpec {
   //   }    
   // }
 
-  val timeoutSources = new File(getClass.getResource("/timeout/").toURI())
-  val timeoutFiles = getListOfFiles(timeoutSources, List(".p"))
+  // val timeoutSources = new File(getClass.getResource("/timeout/").toURI())
+  // val timeoutFiles = getListOfFiles(timeoutSources, List(".p"))
 
-  describe("TIMEOUT") {
-    for (f <- timeoutFiles) {      
-      it(f.getName()) {
-        val ret = Benchmarker.run(f.toString, TIMEOUT)
-        assert(ret == "TIMEOUT")
-      }
-    }    
-  }  
+  // describe("TIMEOUT") {
+  //   for (f <- timeoutFiles) {      
+  //     it(f.getName()) {
+  //       val ret = Benchmarker.run(f.toString, TIMEOUT)
+  //       assert(ret == "TIMEOUT")
+  //     }
+  //   }    
+  // }  
 }

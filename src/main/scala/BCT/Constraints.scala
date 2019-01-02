@@ -3,15 +3,14 @@ package bct
 import scala.collection.mutable.ListBuffer
 
 class Constraint
-case class PositiveConstraint(val equalityDisjunction : List[(Term, Term)]) extends Constraint
-case class NegativeConstraint(val disequalityDisjunction : List[(Term, Term)]) extends Constraint
+case class UnificationConstraint(val equalityDisjunction : List[(Term, Term)]) extends Constraint
+case class DisunificationConstraint(val disequalityDisjunction : List[(Term, Term)]) extends Constraint
 
 object BlockingConstraints {
-
   def apply(constraint : Constraint) : BlockingConstraints = BlockingConstraints(List(constraint))
 
   def fromBlockingClauses(blockingClauses : List[List[(Term, Term)]]) : BlockingConstraints = {
-    val constraints = for (bc <- blockingClauses) yield PositiveConstraint(bc)
+    val constraints = for (bc <- blockingClauses) yield UnificationConstraint(bc)
     BlockingConstraints(constraints)
   }
 
@@ -31,8 +30,8 @@ case class BlockingConstraints(val blockingConstraints : List[Constraint]) {
     val tmp = 
       for (bc <- blockingConstraints) yield {
         bc match {
-          case PositiveConstraint(eq) => posBC += eq
-          case NegativeConstraint(eq) => negBC += eq
+          case UnificationConstraint(eq) => posBC += eq
+          case DisunificationConstraint(eq) => negBC += eq
         }
       }
     (posBC.toList, negBC.toList)

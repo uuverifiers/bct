@@ -16,12 +16,12 @@ abstract class Literal {
 
   def instantiate(model : Model) : Literal
 
-  def regularityConstraint(that : Literal) : Option[NegativeConstraint] = {
+  def regularityConstraint(that : Literal) : Option[DisunificationConstraint] = {
     (this, that) match {
-      case (PositiveLiteral(a1), PositiveLiteral(a2)) if (a1.predicate == a2.predicate) => Some(NegativeConstraint(a1.args zip a2.args))
-      case (NegativeLiteral(a1), NegativeLiteral(a2)) if (a1.predicate == a2.predicate) => Some(NegativeConstraint(a1.args zip a2.args))
-      case (PositiveEquation(lhs1, rhs1), PositiveEquation(lhs2, rhs2)) => Some(NegativeConstraint(List((lhs1, lhs2), (rhs1, rhs2))))
-      case (NegativeEquation(lhs1, rhs1), NegativeEquation(lhs2, rhs2)) => Some(NegativeConstraint(List((lhs1, lhs2), (rhs1, rhs2))))
+      case (PositiveLiteral(a1), PositiveLiteral(a2)) if (a1.predicate == a2.predicate) => Some(DisunificationConstraint(a1.args zip a2.args))
+      case (NegativeLiteral(a1), NegativeLiteral(a2)) if (a1.predicate == a2.predicate) => Some(DisunificationConstraint(a1.args zip a2.args))
+      case (PositiveEquation(lhs1, rhs1), PositiveEquation(lhs2, rhs2)) => Some(DisunificationConstraint(List((lhs1, lhs2), (rhs1, rhs2))))
+      case (NegativeEquation(lhs1, rhs1), NegativeEquation(lhs2, rhs2)) => Some(DisunificationConstraint(List((lhs1, lhs2), (rhs1, rhs2))))
       case _ => None
     }
   }
