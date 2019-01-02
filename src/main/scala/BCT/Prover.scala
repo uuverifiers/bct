@@ -8,8 +8,8 @@ object Prover {
   var startTime : Long = 0
   var maxTime : Long = 0
   var maxDepthReached = false
-
   var PROVE_TABLE_STEP = 0
+
   def proveTable(
     table : Table,
     inputClauses : List[PseudoClause],

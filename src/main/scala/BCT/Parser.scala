@@ -184,8 +184,9 @@ object Parser {
     skolemCount = -1
     constants.clear()
 
-    try {    
-      if (fileName contains "+") {
+    try {
+      // TODO: Disable tptp name check
+      // if (fileName contains "+") {
         val reader = new java.io.BufferedReader (
           new java.io.FileReader(new java.io.File (fileName)))
         val settings = Param.BOOLEAN_FUNCTIONS_AS_PREDICATES.set(ParserSettings.DEFAULT, true)
@@ -197,19 +198,19 @@ object Parser {
             PseudoClause(feqs, lits, order.addConstants(constants.toList))
           }
         Some(pseudoClauses)
-      } else if (fileName contains "-") {
-        // Already in CNF
-        // val reader = new java.io.BufferedReader (
-        //   new java.io.FileReader(new java.io.File (fileName)))
-        // val settings = Param.BOOLEAN_FUNCTIONS_AS_PREDICATES.set(ParserSettings.DEFAULT, true)
-        // val (formula, list, signature) = new TPTPTParser(new Environment, settings)(reader)
-        // Some(formula2Internal(formula))
-        println("CNF problems must be checked with skolem constants.")
-        None
-      } else {
-        println("Only TPTP problems with '+' or '-' supported.")
-        None
-      }
+      // } else if (fileName contains "-") {
+      //   // Already in CNF
+      //   // val reader = new java.io.BufferedReader (
+      //   //   new java.io.FileReader(new java.io.File (fileName)))
+      //   // val settings = Param.BOOLEAN_FUNCTIONS_AS_PREDICATES.set(ParserSettings.DEFAULT, true)
+      //   // val (formula, list, signature) = new TPTPTParser(new Environment, settings)(reader)
+      //   // Some(formula2Internal(formula))
+      //   println("CNF problems must be checked with skolem constants.")
+      //   None
+      // } else {
+      //   println("Only TPTP problems with '+' or '-' supported.")
+      //   None
+      // }
     } catch {
       case e : java.io.FileNotFoundException =>  {
         println("File \"" + fileName + "\" not found.")

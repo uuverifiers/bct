@@ -75,18 +75,10 @@ class Table(
       }
 
     // Extract regularity constraints
-    // I.e., ipf the newly added head of a branch is similar in structure to a previous,
+    // I.e., if the newly added head of a branch is similar in structure to a previous,
     // at least one of the literals must differ (i.e. a negative blocking clause)
-    // val regularityConstraints : BlockingConstraints =
-    //   BlockingConstraints((for (b <- restBranches) yield b.regularityConstraints).flatten)
-    // val regularityConstraints :
-    //     BlockingConstraints =  BlockingConstraints(testBranch.regularityConstraints)
-    val regularityConstraints = BlockingConstraints(List())
-
-    // val regularityConstraints =
-    //   (for (b <- newBranches) yield {
-    //     b.regularityConstraints
-    //   }).fold(BlockingConstraints.Empty)(_ ++ _)
+    val regularityConstraints : BlockingConstraints =
+      (tBranch :: rBranches).map(_.regularityConstraints).fold(BlockingConstraints.Empty)(_ ++ _)
 
     Branch.tryClose(
       tBranch,
