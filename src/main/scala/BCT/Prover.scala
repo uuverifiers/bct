@@ -56,7 +56,7 @@ object Prover {
         val handleResult = 
           if (clause == -1) {
             lastAction = "\tclose()"
-            table.close((-1,-1), remTime)
+            table.close(remTime)
           } else {
             val copiedClause = inputClauses(clause).copy(PROVE_TABLE_STEP.toString)
             // lastAction = "Extend and close w. " + copiedClause + " idx " + idx
