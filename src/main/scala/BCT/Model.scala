@@ -24,9 +24,12 @@ class Model(val assignments : Map[Term, Term]) {
 
   def extend(newModel : Model) : Option[Model] = {
     // Check that there are no conflicts
-    if (newModel.assignments.exists{
-      case (k,v) => assignments.contains(k) && assignments(k) != v
-    }) {
+    if (newModel.assignments.exists{case (k,v) => assignments.contains(k) && assignments(k) != v && assignments(k) != k}) {
+      println("Old model")
+      println(this)
+      println("Extending model")
+      println(newModel)
+      throw new Exception("Trying to extend with disagreeing model")
       None
     } else {
       Some(Model(assignments ++ newModel.assignments))
