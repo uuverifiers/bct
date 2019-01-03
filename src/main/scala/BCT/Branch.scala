@@ -57,7 +57,6 @@ object Branch {
       val breuEqs = breuSubProblems.map(_._2)
       val breuSolver = new breu.LazySolver[Term, String]()
       val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
-      val (_, regularityConstraints) = testBranch.regularityConstraints.toBlockingClauses()
       try {
         val breuProblem =
           breuSolver.createProblem(
@@ -65,7 +64,7 @@ object Branch {
             breuGoals,
             breuEqs,
             posBlockingClauses,
-            negBlockingClauses ++ regularityConstraints)
+            negBlockingClauses)
 
         if (Settings.debug) {
           D.breuCount += 1
