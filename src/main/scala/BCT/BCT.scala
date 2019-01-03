@@ -12,7 +12,6 @@ object BCT extends App {
   // OPTIONS
   //
 
-
   def handleArguments(args : List[String]) : Unit = {
     val timeoutR = "-(timeout|to)=(\\d+)".r
     val regularityR = "(\\+|-)regularity".r

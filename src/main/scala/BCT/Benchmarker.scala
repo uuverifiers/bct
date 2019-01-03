@@ -71,7 +71,6 @@ object Benchmarker {
         val ret = Prover.prove(pseudoClauses)
         val stop = System.currentTimeMillis
         if (Settings.debug) {
-          println(Timer)
           println((stop - start) + "ms")
         }
         ret match {
@@ -96,6 +95,10 @@ object Benchmarker {
         println("Exception: " + e)
         e.printStackTrace()
         "ERROR"
+      }
+    } finally {
+      if (Settings.debug) {
+        println(Timer)
       }
     }
   }
