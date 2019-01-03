@@ -16,7 +16,6 @@ object Prover {
     steps : List[(Int, Int)] = List()
   )(implicit MAX_DEPTH : Int) : Option[Table] = {
     PROVE_TABLE_STEP += 1
-
     if (!steps.isEmpty)
       D.dprintln(steps.reverse.mkString(">"))
 
@@ -148,6 +147,7 @@ object Prover {
           val iClause= startClauses(startClause)
           val str = "   Start Clause (" + startClause + "): " + iClause + "   "
           D.dboxprintln(str, "YELLOW")
+          println("PROGRESS(" + maxDepth + "." + startClause + ")")
 
           // We need to start with all unit clauses          
           val table = Table.create(iClause, unitClauses)
