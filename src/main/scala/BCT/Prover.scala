@@ -79,6 +79,22 @@ object Prover {
     }
   }
 
+  def getStartingClauses(inputClauses : List[PseudoClause]) = {
+    // Some constraints on a good starting clause:
+    // (a) We only need to consider positive starting clauses
+    // (b) We do not wish to start with a unit clause
+
+    val candidateStartClauses = inputClauses.filterNot(_.isUnit).filter(_.isNegative)
+
+    if (candidateStartClauses.isEmpty)
+      throw new Exception("Only unit or negative clauses!")
+
+    if (Settings.start_clause.isDefined)
+      List(candidateStartClauses(Settings.start_clause.get))
+    else 
+      candidateStartClauses
+  }
+
 
   def prove(inputClauses : List[PseudoClause]) = {
     var result = None : Option[Table]
@@ -124,15 +140,11 @@ object Prover {
       D.dprintln(k + " -> " + v.mkString(", "))
     D.dprintln("\n")
 
-    val candidateStartClauses = inputClauses.filter(_.length > 1).toList
+    val startClauses = getStartingClauses(inputClauses)
 
-    val startClauses : List[PseudoClause] =
-      if (Settings.start_clause.isDefined)
-        List(candidateStartClauses(Settings.start_clause.get))
-      else if (candidateStartClauses.isEmpty)
-        List(inputClauses.head)
-      else
-        candidateStartClauses
+    D.dprintln("Starting Clauses:")
+    for (sc <- startClauses)
+      D.dprintln("\t" + sc)
 
     Timer.measure("Prove") {
       // We have to try all input clauses

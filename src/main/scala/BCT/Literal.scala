@@ -11,6 +11,8 @@ abstract class Literal {
   val isPositiveEquation = false
   val isAtom = false
   val terms : Set[Term]
+  lazy val isPositive : Boolean = throw new Exception("_.isPositive")
+  lazy val isNegative : Boolean = throw new Exception("_.isNegative")  
 
   def copy(suffix : String) : Literal
 
@@ -38,7 +40,7 @@ case object True extends Literal {
 case object False extends Literal{
   val terms = Set()
   override def copy(suffix : String) = this
-  override def instantiate(model : Model) = this  
+  override def instantiate(model : Model) = this
 }
 
 
@@ -54,7 +56,8 @@ case class PositiveLiteral(atom : Atom) extends Literal {
   }
   override def copy(suffix : String) = PositiveLiteral(atom.copy(suffix))
   override def instantiate(model : Model) = PositiveLiteral(atom.instantiate(model))
-
+  override lazy val isPositive = true
+  override lazy val isNegative = false    
 }
 
 case class NegativeLiteral(atom : Atom) extends Literal {
@@ -68,7 +71,9 @@ case class NegativeLiteral(atom : Atom) extends Literal {
     }
   }
   override def copy(suffix : String) = NegativeLiteral(atom.copy(suffix))
-  override def instantiate(model : Model) = NegativeLiteral(atom.instantiate(model))  
+  override def instantiate(model : Model) = NegativeLiteral(atom.instantiate(model))
+  override lazy val isPositive = false
+  override lazy val isNegative = true      
 }
 
 
@@ -82,6 +87,8 @@ case class PositiveEquation(lhs_ : Term, rhs_ : Term) extends Equation(lhs_, rhs
   override val terms = Set(lhs, rhs)
   override def copy(suffix : String) = PositiveEquation(lhs.copy(suffix), rhs.copy(suffix))
   override def instantiate(model : Model) = PositiveEquation(lhs.instantiate(model), rhs.instantiate(model))
+  override lazy val isPositive = true
+  override lazy val isNegative = false  
 }
 
 case class NegativeEquation(lhs_ : Term, rhs_ : Term) extends Equation(lhs_, rhs_) {
@@ -89,5 +96,7 @@ case class NegativeEquation(lhs_ : Term, rhs_ : Term) extends Equation(lhs_, rhs
   override val isNegativeEquation = true
   override val terms = Set(lhs, rhs)
   override def copy(suffix : String) = NegativeEquation(lhs.copy(suffix), rhs.copy(suffix))
-  override def instantiate(model : Model) = NegativeEquation(lhs.instantiate(model), rhs.instantiate(model))  
+  override def instantiate(model : Model) = NegativeEquation(lhs.instantiate(model), rhs.instantiate(model))
+  override lazy val isPositive = false
+  override lazy val isNegative = true  
 }

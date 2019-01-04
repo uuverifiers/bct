@@ -16,8 +16,11 @@ case class PseudoClause(val funEquations : List[FunEquation], literals : List[Li
 
   def apply(i : Int) = PseudoLiteral(funEquations, literals(i))
 
+  val isUnit = literals.length == 1
   val length = literals.length
   def iterator = literals.iterator
+  val isPositive = literals.forall(_.isPositive)
+  val isNegative = literals.forall(_.isNegative)  
 
   def copy(suffix : String) = {
     PseudoClause(funEquations.map(_.copy(suffix)), literals.map(_.copy(suffix)), order.copy(suffix))
