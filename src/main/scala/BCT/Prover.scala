@@ -159,7 +159,8 @@ object Prover {
           val iClause= startClauses(startClause)
           val str = "   Start Clause (" + startClause + "): " + iClause + "   "
           D.dboxprintln(str, "YELLOW")
-          println("PROGRESS(" + maxDepth + "." + startClause + ")")
+          if (Settings.progress_print)
+            println("PROGRESS(" + maxDepth + "." + startClause + ")")          
 
           // We need to start with all unit clauses          
           val table = Table.create(iClause, unitClauses)
