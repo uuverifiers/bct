@@ -2,7 +2,7 @@ package bct
 
 import org.scalatest._
 
-class BCTUnit extends FunSuite with DiagrammedAssertions {
+class UnitTest extends FunSuite with DiagrammedAssertions {
 
   val TIMEOUT = 1000
 

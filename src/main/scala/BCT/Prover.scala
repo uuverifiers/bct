@@ -15,22 +15,26 @@ object Prover {
     literalMap : Map[(String, Boolean), List[(Int, Int)]],
     steps : List[(Int, Int)] = List()
   )(implicit MAX_DEPTH : Int) : Option[Table] = {
-    PROVE_TABLE_STEP += 1
+    PROVE_TABLE_STEP += 1    
+    val CUR_PROVE_TABLE_STEP = PROVE_TABLE_STEP
     if (!steps.isEmpty)
       D.dprintln(steps.reverse.mkString(">"))
+    if (Settings.debug) {
+      D.dprintln("[" + CUR_PROVE_TABLE_STEP + "] Current table")      
+      println(table)
+    }
 
     if (System.currentTimeMillis - startTime > Settings.timeout)
       throw new TimeoutException
 
     if (table.isClosed) {
-      D.dprintln("\tClosed!")
+      D.dboxprintln("Closed!")
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
-      D.dprintln("\tmax depth!")
+      D.dprintln("\tmax depth (" + MAX_DEPTH + ") reached")
       maxDepthReached = true
       None
     } else {
-
       val allSteps =
         (for (ic <- inputClauses.indices; idx <- 0 until inputClauses(ic).length) yield {
           (ic, idx)
@@ -42,7 +46,11 @@ object Prover {
           case _ => allSteps
         }
 
-      D.dprintln("[" + PROVE_TABLE_STEP + "] Current table")      
+      if (Settings.debug) {
+        D.dboxprintln("Possible steps:")
+        for (ps <- possibleSteps)
+          println("\t" + ps)
+      }
 
       for ((clause, idx) <- ((-1,-1) :: possibleSteps)) {
         val branch = table.nextBranch
@@ -50,20 +58,18 @@ object Prover {
 
         val handleResult = 
           if (clause == -1) {
+            D.dboxprintln("[" + CUR_PROVE_TABLE_STEP + "] Closing Directly")
             table.close(remTime)
           } else {
-            val copiedClause = inputClauses(clause).copy(PROVE_TABLE_STEP.toString)
+            D.dprintclause(inputClauses(clause), idx, "[" + CUR_PROVE_TABLE_STEP + "] ")            
+            val copiedClause = inputClauses(clause).copy(CUR_PROVE_TABLE_STEP.toString)
             table.extendAndClose(copiedClause, idx, (clause, idx), remTime)
           }
 
         if (handleResult.isDefined) {
-          D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " +
-            (clause, idx) + ") .... (" + PROVE_TABLE_STEP +")")
-
-          if (clause == -1)
-            D.dprintln("Closed directly")
-          else 
-            D.dprintclause(inputClauses(clause), idx)
+          D.dboxprintln("Success!")
+          // D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " +
+          //   (clause, idx) + ") .... (" + CUR_PROVE_TABLE_STEP +")")
 
           proveTable(
             handleResult.get,
@@ -73,6 +79,8 @@ object Prover {
             case Some(nextTable) if nextTable.isClosed => return Some(nextTable)
             case _ => ()
           }
+        } else {
+          D.dprintln("Fail...")
         }
       }
       None

@@ -39,6 +39,7 @@ object Branch {
     val testProblem = testBranch.toBreu
     val subProblems = branches.map(_.toBreu)
     if ((testProblem :: subProblems) contains None) {
+      println("tryClose: couldn't create feasible subProblem")
       None
     } else {
       var domains = Domains.Empty
@@ -51,7 +52,8 @@ object Branch {
 
       // TODO: Lets not have the fix here?
       domains = domains.fix()
-      // domains = domains.pruneWithModel(partialModel)
+      if (Settings.prune_model)
+        domains = domains.pruneWithModel(partialModel)
 
       val relTerms = testBranch.head.terms
 
@@ -60,18 +62,22 @@ object Branch {
       val breuSolver = new breu.LazySolver[Term, String]()
       val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
       try {
+
         val breuProblem =
           breuSolver.createProblem(
             domains.domains,
             breuGoals,
             breuEqs,
-            posBlockingClauses,
+            // posBlockingClauses,
+            List(),
             negBlockingClauses)
+
 
         if (Settings.debug) {
           D.breuCount += 1
           val filename = "BREU_PROBLEMS/" + D.breuCount + ".breu"
           breuProblem.saveToFile(filename)
+          println("Saved to: " + filename)
         }
 
         Timer.measure("BREU") {
@@ -97,10 +103,7 @@ object Branch {
           }
         }
       } catch {
-        // TODO: Maybe change this to ContradictoryException in BREU
-        case e : java.lang.Exception => {
-          None
-        }
+        // TODO: Catch ContradictoryException in BREU?
         case e : org.sat4j.specs.TimeoutException => {
           throw new TimeoutException
         }

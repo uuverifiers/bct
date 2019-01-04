@@ -6,6 +6,7 @@ object Settings {
 
   var regularity = false
   var prune_model = true
+  var instantiate = true
 
 
   var start_clause = None : Option[Int]
@@ -21,7 +22,8 @@ object Settings {
     println("Progress Print: " + progress_print)    
     println("Timeout: " + timeout)
     println("Regularity: " + regularity)
-    println("Prune Model: " + prune_model)    
+    println("Prune Model: " + prune_model)
+    println("Instantiate: " + instantiate)        
     println("Start Clause: " + start_clause)
   }
 }

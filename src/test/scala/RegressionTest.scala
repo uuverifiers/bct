@@ -5,7 +5,7 @@ import org.scalatest._
 import java.io.File
 import scala.io.Source
 
-class Regression extends FunSpec {
+class RegressionTest extends FunSpec {
 
   Settings.timeout = 10000
 

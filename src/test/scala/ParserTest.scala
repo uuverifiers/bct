@@ -3,7 +3,7 @@ package bct
 import org.scalatest._
 import java.io.File
 
-class BCTParser extends FunSuite with DiagrammedAssertions {
+class ParserTest extends FunSuite with DiagrammedAssertions {
   val dir = new File(getClass.getResource("/parser/").toURI())
 
   def parseFile(problem : String) = {

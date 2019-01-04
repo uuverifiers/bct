@@ -2,9 +2,28 @@ package bct
 
 import scala.collection.mutable.ListBuffer
 
-class Constraint
-case class UnificationConstraint(val equalityDisjunction : List[(Term, Term)]) extends Constraint
-case class DisunificationConstraint(val disequalityDisjunction : List[(Term, Term)]) extends Constraint
+// TODO: Add type for List[(Term, Term)]
+
+abstract class Constraint {
+  def instantiate(model : Model) : Constraint
+}
+
+case class UnificationConstraint(val equalityDisjunction : List[(Term, Term)])
+    extends Constraint {
+  def instantiate(model : Model) : UnificationConstraint = {
+    UnificationConstraint(for ((s,t) <- equalityDisjunction) yield {
+      (model.par(s), model.par(t))
+    })
+  }
+}
+case class DisunificationConstraint(val disequalityDisjunction : List[(Term, Term)])
+    extends Constraint {
+  def instantiate(model : Model) : DisunificationConstraint = {
+    DisunificationConstraint(for ((s,t) <- disequalityDisjunction) yield {
+      (model.par(s), model.par(t))
+    })
+  }
+}
 
 object BlockingConstraints {
   def apply(constraint : Constraint) : BlockingConstraints = BlockingConstraints(List(constraint))
@@ -22,6 +41,9 @@ case class BlockingConstraints(val blockingConstraints : List[Constraint]) {
   def ++(that : BlockingConstraints) = {
     BlockingConstraints(blockingConstraints ++ that.blockingConstraints)
   }
+
+  def instantiate(model : Model) = 
+    BlockingConstraints(blockingConstraints.map(_.instantiate(model)))
 
   // TODO: This is for legacy BREU
   def toBlockingClauses() = {

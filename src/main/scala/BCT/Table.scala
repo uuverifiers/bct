@@ -63,7 +63,6 @@ class Table(
     maxTime : Long) : Option[Table] = {
     val (tBranch, rBranches) =
       if (clause.isEmpty) {
-        // throw new Exception("...")
         (nextBranch.weak, List())
       } else {
         val branch = nextBranch
@@ -98,21 +97,26 @@ class Table(
             newPartialModel,
             newFullModel,
             blockingConstraints)
-        Some(closedTable.instantiate(newPartialModel))
+        if (Settings.instantiate)
+          Some(closedTable.instantiate(newPartialModel))
+        else
+          Some(closedTable)
       }
     }
   }
 
 
   def instantiate(model : Model) = {
+    D.dprintln("Instantiating with: " + model.toString)
     val newOpenBranches = openBranches.map(_.instantiate(model))
     val newClosedBranches = closedBranches.map(_.instantiate(model))
+    val newBlockingConstraints = blockingConstraints.instantiate(model)
     new Table(
       newOpenBranches,
       newClosedBranches,
       steps,
       partialModel,
       fullModel,
-      blockingConstraints)(strong)
+      newBlockingConstraints)(strong)
   }
 }

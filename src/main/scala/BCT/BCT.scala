@@ -15,7 +15,8 @@ object BCT extends App {
   def handleArguments(args : List[String]) : Unit = {
     val timeoutR = "-(timeout|to)=(\\d+)".r
     val regularityR = "(\\+|-)regularity".r
-    val pruneModelR = "(\\+|-)prune".r    
+    val pruneModelR = "(\\+|-)prune".r
+    val instantiateR = "(\\+|-)instantiate".r        
     val progressPrintR = "(\\+|-)progress".r    
     val startClauseR = "-start-clause=(\\d+)".r
     val debugR = "(\\+|-)debug".r
@@ -26,6 +27,9 @@ object BCT extends App {
 
         case regularityR("+") => Settings.regularity = true
         case regularityR("-") => Settings.regularity = false
+
+        case instantiateR("+") => Settings.instantiate = true
+        case instantiateR("-") => Settings.instantiate = false          
 
         case pruneModelR("+") => Settings.prune_model = true
         case pruneModelR("-") => Settings.prune_model = false          

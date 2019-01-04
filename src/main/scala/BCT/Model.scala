@@ -22,6 +22,9 @@ class Model(val assignments : Map[Term, Term]) {
     Model(assignments.filter{ case (_, v) => v != Order.MIN_TERM})
   }
 
+  // Partial Application
+  def par(t : Term) = assignments.getOrElse(t, t)
+
   def extend(newModel : Model) : Option[Model] = {
     // Check that there are no conflicts
     if (newModel.assignments.exists{case (k,v) => assignments.contains(k) && assignments(k) != v && assignments(k) != k}) {

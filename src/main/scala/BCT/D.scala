@@ -41,7 +41,7 @@ object D {
       Console.println(str)    
   }
 
-  def dprintclause(pc : PseudoClause, idx : Int) = {
+  def dprintclause(pc : PseudoClause, idx : Int, prefix : String = "") = {
     val clauseStrings =
       for ((pl, i) <- pc.zipWithIndex) yield {
         if (i == idx)
@@ -49,7 +49,7 @@ object D {
         else
           pl.toString
       }
-    val str = pc.funEquations.mkString("^") + " :: " + clauseStrings.mkString(" v ")
+    val str = prefix + pc.funEquations.mkString("^") + " :: " + clauseStrings.mkString(" v ")
 
     dprintln("+" + ("-"*(MARGIN + (str.length-13) + MARGIN)) + "+")
     dprintln("|" + (" "*MARGIN) + str + (" "*MARGIN) + "|")
