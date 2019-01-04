@@ -2,8 +2,15 @@ package bct
 
 object Settings {
   var timeout = 60000 : Int
+
+
   var regularity = false
+  var prune_model = true
+
+
   var start_clause = None : Option[Int]
+
+
   var debug = false
   var progress_print = false
 
@@ -14,6 +21,7 @@ object Settings {
     println("Progress Print: " + progress_print)    
     println("Timeout: " + timeout)
     println("Regularity: " + regularity)
+    println("Prune Model: " + prune_model)    
     println("Start Clause: " + start_clause)
   }
 }

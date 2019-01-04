@@ -12,8 +12,16 @@ object Domains {
 case class Domains(val domains : Map[Term, Set[Term]]) {
 
   override def toString() = domains.toString()
-
   def apply(t : Term) = domains(t)
+
+  def pruneWithModel(model : Model) : Domains = {
+    Domains((for ((t, dom) <- domains) yield {
+      if (model contains t)
+        t -> Set(model(t))
+      else
+        t -> dom
+    }).toMap)
+  }
 
   def extend(that : Domains) = {
     import scala.collection.mutable.{Map => MMap}

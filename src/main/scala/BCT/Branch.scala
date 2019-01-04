@@ -33,6 +33,7 @@ object Branch {
   def tryClose(
     testBranch : Branch,
     branches : List[Branch],
+    partialModel : Model,
     blockingConstraints : BlockingConstraints,
     maxTime : Long) : (Option[(Model, Model, BlockingConstraints)]) = {
     val testProblem = testBranch.toBreu
@@ -50,6 +51,7 @@ object Branch {
 
       // TODO: Lets not have the fix here?
       domains = domains.fix()
+      // domains = domains.pruneWithModel(partialModel)
 
       val relTerms = testBranch.head.terms
 
@@ -215,7 +217,6 @@ case class Branch(
           (feq.fun, feq.args, feq.res)
         }
       val breuGoals = goals
-      // val breuNegFunEqs = List()
 
       Some((breuDomains, breuFlatEqs1 ++ breuFlatEqs2, breuGoals))
     }
@@ -239,7 +240,7 @@ case class Branch(
     val newPseudoLiterals = pseudoLiterals.map(_.instantiate(model))
     Branch(newPseudoLiterals, order, isClosed, strong)
   }
-  def tryClose(maxTime : Long) =
-    Branch.tryClose(this, List(), BlockingConstraints.Empty, maxTime)
 
+  def tryClose(maxTime : Long) =
+    Branch.tryClose(this, List(), Model.Empty, BlockingConstraints.Empty, maxTime)
 }

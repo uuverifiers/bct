@@ -7,7 +7,7 @@ import scala.io.Source
 
 class Regression extends FunSpec {
 
-  Settings.timeout = 5000
+  Settings.timeout = 10000
 
   def getListOfFiles(dir: File, extensions: List[String]): List[File] = {
     dir.listFiles.filter(_.isFile).toList.filter { file =>

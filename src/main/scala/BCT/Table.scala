@@ -28,8 +28,8 @@ class Table(
   openBranches : List[Branch],
   closedBranches : List[Branch],
   val steps : List[(Int, Int)] = List(),
-  val partialModel : Model = Model.EmptyModel,
-  val fullModel : Model = Model.EmptyModel,
+  val partialModel : Model = Model.Empty,
+  val fullModel : Model = Model.Empty,
   blockingConstraints : BlockingConstraints = BlockingConstraints.Empty)
   (implicit strong : Boolean = true) {
 
@@ -83,6 +83,7 @@ class Table(
     Branch.tryClose(
       tBranch,
       closedBranches,
+      partialModel,
       blockingConstraints ++ regularityConstraints,
       maxTime) match {
       case None => None

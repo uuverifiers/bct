@@ -53,7 +53,7 @@ case class Order(terms : List[(Term)]) {
     Order(newTerms ++ oldTerms)
   }
 
-  def toDomains(model : Model = Model.EmptyModel) : Domains = {
+  def toDomains(model : Model = Model.Empty) : Domains = {
     import scala.collection.mutable.{Set => MSet, Map => MMap}
 
     val seenTerms = MSet() : MSet[Term]

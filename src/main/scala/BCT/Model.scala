@@ -6,7 +6,7 @@ object Model {
     new Model(assignments)
   }
 
-  val EmptyModel = Model(Map())
+  val Empty = Model(Map())
 }
 
 class Model(val assignments : Map[Term, Term]) {
