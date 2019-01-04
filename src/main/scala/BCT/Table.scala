@@ -54,7 +54,7 @@ class Table(
   lazy val nextBranch = openBranches.head
 
   def close(maxTime : Long) : Option[Table] =
-    extendAndClose(PseudoClause.EmptyPseudoClause, 0, (-1, -1), maxTime)
+    extendAndClose(PseudoClause.Empty, 0, (-1, -1), maxTime)
 
   def extendAndClose(
     clause : PseudoClause,
