@@ -139,7 +139,7 @@ class BCTUnit extends FunSuite with DiagrammedAssertions {
     assert(pc == pc2)
 
     val empty_pc = PseudoClause(List(), List(), Order.Empty)
-    assert(empty_pc == PseudoClause.EmptyPseudoClause)
+    assert(empty_pc == PseudoClause.Empty)
     assert(empty_pc.isEmpty)
   }
 
