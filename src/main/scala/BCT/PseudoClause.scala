@@ -5,7 +5,7 @@ object PseudoClause {
     // TODO: Order here is empty... 
     PseudoClause(List(), List(lit), Order.Empty)
 
-  val EmptyPseudoClause = PseudoClause(List(), List(), Order.Empty)
+  val Empty = PseudoClause(List(), List(), Order.Empty)
 }
 
 case class PseudoClause(val funEquations : List[FunEquation], literals : List[Literal], val order : Order) extends Iterable[Literal] {
