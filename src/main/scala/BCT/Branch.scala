@@ -6,8 +6,6 @@ package bct
 
 object Branch {
   def apply(pseudoLiteral : PseudoLiteral, strong : Boolean) : Branch = {
-    // Branch(List(pseudoLiteral), pseudoLiteral.order, false, strong)
-    // TODO: Maybe not allows no given order 
     Branch(List(pseudoLiteral), pseudoLiteral.order, strong)
   }
 
@@ -50,8 +48,6 @@ object Branch {
           (subGoals, subEqs)
         }
 
-      // TODO: Lets not have the fix here?
-      domains = domains.fix()
       if (Settings.prune_model)
         domains = domains.pruneWithModel(partialModel)
 
@@ -68,8 +64,7 @@ object Branch {
             domains.domains,
             breuGoals,
             breuEqs,
-            // posBlockingClauses,
-            List(),
+            posBlockingClauses,
             negBlockingClauses)
 
 

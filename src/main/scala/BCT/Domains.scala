@@ -36,20 +36,4 @@ case class Domains(val domains : Map[Term, Set[Term]]) {
 
     Domains(newMap.toMap)
   }
-
-  def fix() = {
-    if (domains.exists{ case (t, d) => t.isUniversal && d == Set(t) }) {
-      val minTerm = Order.MIN_TERM
-      val map = 
-        for ((k, v) <- domains) yield {
-          if (k.isUniversal)
-            k -> (v + minTerm)
-          else
-            k -> v
-        }
-      Domains(map)
-    } else {
-      this
-    }
-  }
 }
