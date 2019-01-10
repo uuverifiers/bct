@@ -7,7 +7,9 @@ class TimeoutException extends Exception
 object Prover {
   var startTime : Long = 0
   var maxDepthReached = false
+  var maxDepth = 0
   var PROVE_TABLE_STEP = 0
+  var startClause = 0
 
   def proveTable(
     table : Table,
@@ -20,8 +22,11 @@ object Prover {
     if (!steps.isEmpty)
       D.dprintln(steps.reverse.mkString(">"))
     if (Settings.debug) {
-      D.dprintln("[" + CUR_PROVE_TABLE_STEP + "] Current table")      
-      println(table)
+      D.dprintln("[" + CUR_PROVE_TABLE_STEP + "] Current table")
+      if (Settings.full_table)
+        println(table)
+      else
+        println(table.simple)
     }
 
     if (System.currentTimeMillis - startTime > Settings.timeout)
@@ -47,7 +52,7 @@ object Prover {
         }
 
       if (Settings.debug) {
-        D.dboxprintln("Possible steps:")
+        D.dboxprintln("Possible steps: (" + MAX_DEPTH + ")")
         for (ps <- possibleSteps)
           println("\t" + ps)
       }
@@ -77,6 +82,7 @@ object Prover {
             literalMap,
             (clause,idx) :: steps) match {
             case Some(nextTable) if nextTable.isClosed => return Some(nextTable)
+            case None if Settings.essential => return None
             case _ => ()
           }
         } else {
@@ -106,7 +112,6 @@ object Prover {
 
   def prove(inputClauses : List[PseudoClause]) = {
     var result = None : Option[Table]
-    var startClause = 0
 
     startTime = System.currentTimeMillis
 
@@ -154,31 +159,30 @@ object Prover {
     for (sc <- startClauses)
       D.dprintln("\t" + sc)
 
+    // We have to try all input clauses
+    maxDepth = Settings.start_max_depth
+    maxDepthReached = true
+
     Timer.measure("Prove") {
-      // We have to try all input clauses
-      var maxDepth = 5
-      maxDepthReached = true
       while (!result.isDefined && maxDepthReached) {
-        // while (!result.isDefined && startClause < startClauses.length) {
         maxDepthReached = false
         maxDepth += 1
+        D.dlargeboxprintln("INCREASING MAX DEPTH: " + maxDepth)
         var startClause = 0
         while (startClause < startClauses.length && !result.isDefined) {
           val iClause= startClauses(startClause)
           val str = "   Start Clause (" + startClause + "): " + iClause + "   "
           D.dboxprintln(str, "YELLOW")
-          if (Settings.progress_print)
-            println("PROGRESS(" + maxDepth + "." + startClause + ")")          
 
-          // We need to start with all unit clauses          
+          // We need to start with all unit clauses
           val table = Table.create(iClause, unitClauses)
-          // D.dprintln(table.toString)
 
           result = proveTable(table, inputClauses, literalMap.toMap)(maxDepth)
-          startClause += 1
+          startClause += 1          
         }
       }
     }
+
     result
   }
 }

@@ -97,6 +97,8 @@ object Benchmarker {
         "ERROR"
       }
     } finally {
+      if (Settings.progress_print)
+        println("PROGRESS(" + Prover.maxDepth + "." + (Prover.startClause) + ")")
       if (Settings.debug) {
         println(Timer)
       }

@@ -68,7 +68,7 @@ object Branch {
             negBlockingClauses)
 
 
-        if (Settings.debug) {
+        if (Settings.save_breu) {
           D.breuCount += 1
           val filename = "BREU_PROBLEMS/" + D.breuCount + ".breu"
           breuProblem.saveToFile(filename)

@@ -16,10 +16,14 @@ object BCT extends App {
     val timeoutR = "-(timeout|to)=(\\d+)".r
     val regularityR = "(\\+|-)regularity".r
     val pruneModelR = "(\\+|-)prune".r
-    val instantiateR = "(\\+|-)instantiate".r        
-    val progressPrintR = "(\\+|-)progress".r    
+    val instantiateR = "(\\+|-)instantiate".r
+    val essentialR = "(\\+|-)essential".r    
+    val startMaxDepthR = "-start-max-depth=(\\d+)".r
+    val progressPrintR = "(\\+|-)progress".r
+    val fullTablePrintR = "(\\+|-)full-table".r        
     val startClauseR = "-start-clause=(\\d+)".r
     val debugR = "(\\+|-)debug".r
+    val saveBreuR = "(\\+|-)save-breu".r    
 
     if (!args.isEmpty) {
       args.head match {
@@ -29,17 +33,27 @@ object BCT extends App {
         case regularityR("-") => Settings.regularity = false
 
         case instantiateR("+") => Settings.instantiate = true
-        case instantiateR("-") => Settings.instantiate = false          
+        case instantiateR("-") => Settings.instantiate = false
+
+        case essentialR("+") => Settings.essential = true
+        case essentialR("-") => Settings.essential = false                    
 
         case pruneModelR("+") => Settings.prune_model = true
-        case pruneModelR("-") => Settings.prune_model = false          
+        case pruneModelR("-") => Settings.prune_model = false
 
         case progressPrintR("+") => Settings.progress_print = true
-        case progressPrintR("-") => Settings.progress_print = false          
+        case progressPrintR("-") => Settings.progress_print = false
+
+        case fullTablePrintR("+") => Settings.full_table = true
+        case fullTablePrintR("-") => Settings.full_table = false                    
 
         case debugR("+") => Settings.debug = true
-        case debugR("-") => Settings.debug = false          
+        case debugR("-") => Settings.debug = false
 
+        case saveBreuR("+") => Settings.save_breu = true
+        case saveBreuR("-") => Settings.save_breu = false                    
+
+        case startMaxDepthR(maxDepth) => Settings.start_max_depth = maxDepth.toInt
         case startClauseR(idx) => Settings.start_clause = Some(idx.toInt)
 
         case str => inputBuffer += str

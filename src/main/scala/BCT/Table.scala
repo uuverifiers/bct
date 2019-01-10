@@ -46,6 +46,15 @@ class Table(
   // "steps: " + steps.reverse.mkString(".") + "\n" +
   // "Model: \n" + partialModel
 
+  val simple =
+    "\ttable\n" + 
+    (if (!openBranches.isEmpty)
+      "----open----\n" + openBranches.mkString("\n") + "\n"
+    else
+      "")
+  // "steps: " + steps.reverse.mkString(".") + "\n" +
+  // "Model: \n" + partialModel  
+
   
 
   val length = openBranches.length + closedBranches.length
@@ -107,7 +116,6 @@ class Table(
 
 
   def instantiate(model : Model) = {
-    D.dprintln("Instantiating with: " + model.toString)
     val newOpenBranches = openBranches.map(_.instantiate(model))
     val newClosedBranches = closedBranches.map(_.instantiate(model))
     val newBlockingConstraints = blockingConstraints.instantiate(model)
