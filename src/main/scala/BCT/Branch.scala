@@ -37,7 +37,7 @@ object Branch {
     val testProblem = testBranch.toBreu
     val subProblems = branches.map(_.toBreu)
     if ((testProblem :: subProblems) contains None) {
-      println("tryClose: couldn't create feasible subProblem")
+      D.dprintln("tryClose: couldn't create feasible subProblem")
       None
     } else {
       var domains = Domains.Empty
@@ -120,10 +120,13 @@ case class Branch(
   override def toString() =
     pseudoLiterals.mkString("<-") + " || " + order + " || " + conflicts.mkString(" v ")
 
+  def simpleString() =
+    pseudoLiterals.mkString("<-") + " || " + order    
+
   lazy val closed = Branch(pseudoLiterals, order, true, strong)
   lazy val weak = Branch(pseudoLiterals, order, isClosed, false)
 
-  lazy val conflicts = {
+  lazy val conflicts : List[Branch.Conflict] = {
     if (strong) {
       // Only allow contradiction involving last one or two nodes
       val n1 = pseudoLiterals(0)
@@ -136,6 +139,7 @@ case class Branch(
       // (2) First node is Positive/NegativeLiteral,
       //     second node is an equality, then first node must be in conflict (using equality)
       // (3) First and second node is a Positive/NegativeLiteral, then they must be in conflict
+      // (4) First node is an equality, then this equality must be part of the conflict
 
       if (n1.lit.isNegativeEquation) {
         // Case 1
@@ -149,8 +153,10 @@ case class Branch(
       } else if (pseudoLiterals.length >= 2 && n1.isComplementary(n2)) {
         // Case 3
         List(Branch.ComplementaryPair(n1.atom, n2.atom))
+      } else if (n1.lit.isPositiveEquation) {
+        // Case 4
+        this.weak.conflicts
       } else {
-        // No case
         List()
       }
     } else {

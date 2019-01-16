@@ -44,20 +44,37 @@ object Prover {
         (for (ic <- inputClauses.indices; idx <- 0 until inputClauses(ic).length) yield {
           (ic, idx)
         }).toList
+
+
       val possibleSteps =
-        table.nextBranch.head.lit match {
-          case PositiveLiteral(a) => literalMap((a.predicate, true))
-          case NegativeLiteral(a) => literalMap((a.predicate, false))
-          case _ => allSteps
+        if (Settings.hard_coded.isDefined) {
+          if (steps.length >= Settings.hard_coded.get.length) {
+            D.dlargeboxprintln("Run out of hard_coded steps...")
+            List()
+          } else {
+              List(Settings.hard_coded.get(steps.length))
+          }
+        } else {
+          (-1, -1) :: (
+            table.nextBranch.head.lit match {
+              case PositiveLiteral(a) => literalMap((a.predicate, true))
+              case NegativeLiteral(a) => literalMap((a.predicate, false))
+              case _ => allSteps
+            }
+          )
         }
 
       if (Settings.debug) {
-        D.dboxprintln("Possible steps: (" + MAX_DEPTH + ")")
-        for (ps <- possibleSteps)
-          println("\t" + ps)
+        if (Settings.hard_coded.isDefined) {
+          D.dboxprintln("Hard-coded: " + possibleSteps.head)
+        } else {
+          D.dboxprintln("Possible steps: (" + MAX_DEPTH + ")")
+          for (ps <- possibleSteps)
+            println("\t" + ps)
+        }
       }
 
-      for ((clause, idx) <- ((-1,-1) :: possibleSteps)) {
+      for ((clause, idx) <- possibleSteps) {
         val branch = table.nextBranch
         val remTime = Settings.timeout - (System.currentTimeMillis - startTime)
 
@@ -98,15 +115,15 @@ object Prover {
     // (a) We only need to consider positive starting clauses
     // (b) We do not wish to start with a unit clause
 
-    val candidateStartClauses = inputClauses.filterNot(_.isUnit).filter(_.isNegative)
-
-    if (candidateStartClauses.isEmpty)
-      throw new Exception("Only unit or negative clauses!")
-
-    if (Settings.start_clause.isDefined)
-      List(candidateStartClauses(Settings.start_clause.get))
-    else 
-      candidateStartClauses
+    // TODO: Since all unit clauses are on the branch, maybe we can ignore starting with them?
+    if (Settings.start_clause.isDefined) {
+      List(inputClauses(Settings.start_clause.get))
+    } else {
+      val candidateClauses =  inputClauses.filter(_.isNegative)
+      if (candidateClauses.isEmpty)
+        throw new Exception("Only unit or negative clauses!")
+      candidateClauses
+    }
   }
 
 

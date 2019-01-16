@@ -21,10 +21,13 @@ object Settings {
   var full_table = false
   var save_breu = false
 
+  var hard_coded = None : Option[List[(Int, Int)]]
+
 
   def print() = {
     D.dlargeboxprintln("SETTINGS")
     println("Debug: " + debug)
+    println("Hard-coded: " + hard_coded)
     println("Progress Print: " + progress_print)
     println("Print Full Table: " + full_table)        
     println("Timeout: " + timeout)

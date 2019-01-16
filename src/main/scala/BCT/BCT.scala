@@ -22,6 +22,7 @@ object BCT extends App {
     val progressPrintR = "(\\+|-)progress".r
     val fullTablePrintR = "(\\+|-)full-table".r        
     val startClauseR = "-start-clause=(\\d+)".r
+    val hardCodedR = "-hard-coded=([-]?\\d+\\.\\d+[;[-]?\\d+\\.\\d+]*)".r    
     val debugR = "(\\+|-)debug".r
     val saveBreuR = "(\\+|-)save-breu".r    
 
@@ -46,6 +47,15 @@ object BCT extends App {
 
         case fullTablePrintR("+") => Settings.full_table = true
         case fullTablePrintR("-") => Settings.full_table = false                    
+
+        case hardCodedR(str) => {
+          val steps = 
+            for (tuple <- str.split(";")) yield {
+              val split = tuple.split('.')
+              (split(0).toInt, split(1).toInt)
+            }
+          Settings.hard_coded = Some(steps.toList)
+        }
 
         case debugR("+") => Settings.debug = true
         case debugR("-") => Settings.debug = false
