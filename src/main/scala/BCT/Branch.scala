@@ -68,6 +68,9 @@ object Branch {
             negBlockingClauses)
 
 
+
+        if (Settings.debug)
+          println(breuProblem)
         if (Settings.save_breu) {
           D.breuCount += 1
           val filename = "BREU_PROBLEMS/" + D.breuCount + ".breu"
@@ -183,6 +186,22 @@ case class Branch(
   }
 
   lazy val equations = pseudoLiterals.map(_.lit).filter(_.isPositiveEquation)
+
+  lazy val toUnification : List[List[(Term, Term)]] = {
+    (for (c <- conflicts) yield {
+      c match {
+        case Branch.ComplementaryPair(a1, a2) => {
+          (for ((arg1, arg2) <- a1.args zip a2.args) yield {
+            (arg1, arg2)
+          }).toList
+        }
+
+        case Branch.InvalidEquation(t1, t2) => {
+          List((t1, t2))
+        }
+      }
+    }).toList
+  }
 
   lazy val toBreu : Option[(Domains, List[Branch.Equation], Branch.Goal)] = {
     if (conflicts.length == 0) {
