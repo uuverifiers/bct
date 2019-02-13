@@ -1,7 +1,7 @@
 package bct
 
 object Settings {
-  var timeout = 60000 : Int
+  var timeout = None : Option[Int]
 
 
   var regularity = false

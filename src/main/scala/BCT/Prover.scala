@@ -29,7 +29,7 @@ object Prover {
         println(table.simple)
     }
 
-    if (System.currentTimeMillis - startTime > Settings.timeout)
+    if (Settings.timeout.isDefined && System.currentTimeMillis - startTime > Settings.timeout.get)
       throw new TimeoutException
 
     if (table.isClosed) {
@@ -76,7 +76,11 @@ object Prover {
 
       for ((clause, idx) <- possibleSteps) {
         val branch = table.nextBranch
-        val remTime = Settings.timeout - (System.currentTimeMillis - startTime)
+        val remTime =
+          if (Settings.timeout.isDefined)
+            Settings.timeout.get - (System.currentTimeMillis - startTime)
+          else
+            1000 * 3600 // TODO: Now timeout is 1 hour
 
         val handleResult = 
           if (clause == -1) {

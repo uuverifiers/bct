@@ -28,7 +28,7 @@ object BCT extends App {
 
     if (!args.isEmpty) {
       args.head match {
-        case timeoutR(_, time) => Settings.timeout = time.toInt
+        case timeoutR(_, time) => Settings.timeout = Some(time.toInt)
 
         case regularityR("+") => Settings.regularity = true
         case regularityR("-") => Settings.regularity = false
