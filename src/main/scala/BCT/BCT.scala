@@ -24,6 +24,8 @@ object BCT extends App {
     val startClauseR = "-start-clause=(\\d+)".r
     val hardCodedR = "-hard-coded=([-]?\\d+\\.\\d+[;[-]?\\d+\\.\\d+]*)".r    
     val debugR = "(\\+|-)debug".r
+    val timeR = "(\\+|-)time".r    
+    val breuR = "-breu=(old|new|both)".r
     val saveBreuR = "(\\+|-)save-breu".r    
 
     if (!args.isEmpty) {
@@ -59,6 +61,11 @@ object BCT extends App {
 
         case debugR("+") => Settings.debug = true
         case debugR("-") => Settings.debug = false
+
+        case timeR("+") => Settings.time = true
+        case timeR("-") => Settings.time = false
+
+        case breuR(breu) => Settings.breu = breu
 
         case saveBreuR("+") => Settings.save_breu = true
         case saveBreuR("-") => Settings.save_breu = false                    

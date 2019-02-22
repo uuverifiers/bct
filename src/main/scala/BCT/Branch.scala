@@ -26,88 +26,7 @@ object Branch {
   }
 
   type Equation = (String, List[Term], Term)
-  type Goal = List[List[(Term, Term)]]
-
-  def tryClose(
-    testBranch : Branch,
-    branches : List[Branch],
-    partialModel : Model,
-    blockingConstraints : BlockingConstraints,
-    maxTime : Long) : (Option[(Model, Model, BlockingConstraints)]) = {
-    val testProblem = testBranch.toBreu
-    val subProblems = branches.map(_.toBreu)
-    if ((testProblem :: subProblems) contains None) {
-      D.dprintln("tryClose: couldn't create feasible subProblem")
-      None
-    } else {
-      var domains = Domains.Empty
-      val breuSubProblems =
-        for (sp <- testProblem :: subProblems) yield {
-          val (subDomains, subEqs, subGoals) = sp.get
-          domains = domains.extend(subDomains)
-          (subGoals, subEqs)
-        }
-
-      if (Settings.prune_model)
-        domains = domains.pruneWithModel(partialModel)
-
-      val relTerms = testBranch.head.terms
-
-      val breuGoals = breuSubProblems.map(_._1)
-      val breuEqs = breuSubProblems.map(_._2)
-      val breuSolver = new breu.LazySolver[Term, String]()
-      val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
-      try {
-
-        val breuProblem =
-          breuSolver.createProblem(
-            domains.domains,
-            breuGoals,
-            breuEqs,
-            posBlockingClauses,
-            negBlockingClauses)
-
-
-
-        if (Settings.debug)
-          println(breuProblem)
-        if (Settings.save_breu) {
-          D.breuCount += 1
-          val filename = "BREU_PROBLEMS/" + D.breuCount + ".breu"
-          breuProblem.saveToFile(filename)
-          println("Saved to: " + filename)
-        }
-
-        Timer.measure("BREU") {
-          breuProblem.solve(maxTime) match {
-            case breu.Result.SAT => {
-              val positiveConstraints =
-                for (bc <- breuProblem.positiveBlockingClauses) yield UnificationConstraint(bc)
-              val negativeConstraints =
-                for (bc <- breuProblem.negativeBlockingClauses) yield DisunificationConstraint(bc)
-              val model = breuProblem.getModel
-              val newBc = BlockingConstraints(positiveConstraints ++ negativeConstraints)
-
-              // TODO: Hack to remove min term from model
-              val tmpModel : Model =
-                Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
-
-              val fullModel = Model(model)
-              Some((tmpModel, fullModel, newBc))
-            }
-            case breu.Result.UNSAT | breu.Result.UNKNOWN => {
-              None
-            }
-          }
-        }
-      } catch {
-        // TODO: Catch ContradictoryException in BREU?
-        case e : org.sat4j.specs.TimeoutException => {
-          throw new TimeoutException
-        }
-      }
-    }
-  }
+  type Goal = List[List[(Term, Term)]]  
 }
 
 
@@ -245,6 +164,8 @@ case class Branch(
     }
   }
 
+
+
   def extend(pl : PseudoLiteral, augOrder : Order) = {
     val newOrder = order + augOrder    
     Branch(pl :: pseudoLiterals, newOrder, isClosed, strong)
@@ -263,7 +184,4 @@ case class Branch(
     val newPseudoLiterals = pseudoLiterals.map(_.instantiate(model))
     Branch(newPseudoLiterals, order, isClosed, strong)
   }
-
-  def tryClose(maxTime : Long) =
-    Branch.tryClose(this, List(), Model.Empty, BlockingConstraints.Empty, maxTime)
 }

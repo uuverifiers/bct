@@ -11,6 +11,8 @@ object Prover {
   var PROVE_TABLE_STEP = 0
   var startClause = 0
 
+  val breuSolver = new breu.LazyOnlineSolver[Term, String]()
+
   def proveTable(
     table : Table,
     inputClauses : List[PseudoClause],

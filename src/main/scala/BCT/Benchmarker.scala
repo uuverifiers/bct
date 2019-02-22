@@ -99,7 +99,7 @@ object Benchmarker {
     } finally {
       if (Settings.progress_print)
         println("PROGRESS(" + Prover.maxDepth + "." + (Prover.startClause) + ")")
-      if (Settings.debug) {
+      if (Settings.debug || Settings.time) {
         println(Timer)
       }
     }

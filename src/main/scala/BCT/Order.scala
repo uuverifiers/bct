@@ -21,7 +21,7 @@ object Order {
 }
 
 
-case class Order(terms : List[(Term)]) {
+case class Order(terms : List[Term]) {
   // TODO: Here we are inserting dummy-element!
   // val terms = 
   //   if (terms_.isEmpty)
@@ -34,6 +34,8 @@ case class Order(terms : List[(Term)]) {
   override def toString() = {
     terms.mkString(">")
   }
+
+  val termList = terms.reverse
 
 
   def +(that : Order) = {

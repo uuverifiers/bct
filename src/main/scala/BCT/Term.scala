@@ -41,10 +41,10 @@ class Term(val term : String, val id : Int = 0, val isUniversal : Boolean = fals
   override def hashCode: Int = term.hashCode
 
   override def toString() = {
-    if (isUniversal)
+    (if (isUniversal)
       8704.toChar.toString + term
     else
-      8707.toChar.toString + term
+      8707.toChar.toString + term) // + "[" + id + "]"
   }
 
   def copy(suffix : String) =
