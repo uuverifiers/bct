@@ -45,7 +45,6 @@ class Table(
   closedBranches : List[Branch],
   val steps : List[(Int, Int)] = List(),
   val partialModel : Model = Model.Empty,
-  val fullModel : Model = Model.Empty,
   blockingConstraints : BlockingConstraints = BlockingConstraints.Empty)
   (implicit strong : Boolean = true) {
 
@@ -126,7 +125,6 @@ class Table(
             tBranch.closed :: closedBranches,
             step :: steps,
             newPartialModel,
-            newFullModel,
             blockingConstraints)
         if (Settings.instantiate)
           Some(closedTable.instantiate(newPartialModel))
@@ -146,7 +144,6 @@ class Table(
       newClosedBranches,
       steps,
       partialModel,
-      fullModel,
       newBlockingConstraints)(strong)
   }
 
@@ -243,8 +240,7 @@ class Table(
             val tmpModel : Model =
               Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
 
-            val fullModel = Model(model)
-            Some((tmpModel, fullModel, newBc))
+            Some((tmpModel, Model(model), newBc))
           }
           case breu.Result.UNSAT | breu.Result.UNKNOWN => {
             None
@@ -385,8 +381,7 @@ class Table(
           val tmpModel : Model =
             Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
 
-          val fullModel = Model(model)
-          Some((tmpModel, fullModel, newBc))
+          Some((tmpModel, Model(model), newBc))
         }
         case breu.Result.UNSAT | breu.Result.UNKNOWN => {
           None
