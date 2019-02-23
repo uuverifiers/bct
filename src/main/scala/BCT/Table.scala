@@ -40,6 +40,10 @@ object Table {
   }
 }
 
+//
+//  Represents a proof table
+//
+
 class Table(
   openBranches : List[Branch],
   closedBranches : List[Branch],
@@ -47,6 +51,15 @@ class Table(
   val partialModel : Model = Model.Empty,
   blockingConstraints : BlockingConstraints = BlockingConstraints.Empty)
   (implicit strong : Boolean = true) {
+
+
+
+  val length = openBranches.length + closedBranches.length
+  val depth = if (openBranches.isEmpty) 0 else openBranches.map(_.depth).max
+  val isClosed = openBranches.length == 0
+  lazy val nextBranch = openBranches.head
+
+
 
   override def toString =
     "\ttable\n" + 
@@ -57,9 +70,9 @@ class Table(
     (if (!closedBranches.isEmpty)
       "---closed---\n" + closedBranches.mkString("\n") + "\n"
     else
-      "") + "\n"
-  // "steps: " + steps.reverse.mkString(".") + "\n" +
-  // "Model: \n" + partialModel
+      "") + "\n" +
+      "steps: " + steps.reverse.mkString(".") + "\n" +
+      "Model: \n" + partialModel
 
   val simple =
     "\ttable\n" + 
@@ -67,15 +80,7 @@ class Table(
       "----open----\n" + openBranches.mkString("\n") + "\n"
     else
       "")
-  // "steps: " + steps.reverse.mkString(".") + "\n" +
-  // "Model: \n" + partialModel  
 
-  
-
-  val length = openBranches.length + closedBranches.length
-  val depth = if (openBranches.isEmpty) 0 else openBranches.map(_.depth).max
-  val isClosed = openBranches.length == 0
-  lazy val nextBranch = openBranches.head
 
   def close(maxTime : Long) : Option[Table] =
     extendAndClose(PseudoClause.Empty, 0, (-1, -1), maxTime)
@@ -104,11 +109,11 @@ class Table(
       (tBranch :: rBranches).map(_.regularityConstraints).fold(BlockingConstraints.Empty)(_ ++ _)
 
     // If we are instantiating, we do not need to check the closed branches
-    // val actualClosedBranches =
-    //   if (Settings.instantiate)
-    //     List()
-    //   else
-    //     closedBranches
+    val actualClosedBranches =
+      if (Settings.instantiate)
+        List()
+      else
+        closedBranches
 
     tryClose(
       tBranch,
@@ -311,10 +316,13 @@ class Table(
           tmpTerms += t
           if (!(addedTerms contains t)) {
             val d =
-              if (t.isUniversal)
+              if (partialModel contains t) {
+                Set(partialModel(t))
+              } else if(t.isUniversal) {
                 tmpTerms.toSet
-              else
+              } else {
                 Set(t)
+              }
             breuSolver.addDomain(t, d)
             addedTerms += t
           }
@@ -344,8 +352,6 @@ class Table(
           breuSolver.addGoal(g)
         }
 
-
-
         breuSolver.push()
       }
     }
@@ -355,31 +361,24 @@ class Table(
 
       if (Settings.debug)
         println(breuSolver)
-      // if (Settings.save_breu) {
-      //   D.breuCount += 1
-      //   val filename = "BREU_PROBLEMS/" + D.breuCount + ".breu"
-      //   breuProblem.saveToFile(filename)
-      //   println("Saved to: " + filename)
-      // }
-
-      // println("NEW BREU PROBLEM")
-      // println(breuSolver.toString())
 
       val result = breuSolver.solve(maxTime)
       result match {
         case breu.Result.SAT => {
+          val model = breuSolver.getModel()
+
+          // TODO: Hack to remove min term from model          
+          val tmpModel : Model =
+            Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
+
           val (posBC, negBC) = breuSolver.getBlockingClauses()
           val positiveConstraints =
             for (bc <- posBC) yield UnificationConstraint(bc)
           val negativeConstraints =
             for (bc <- negBC) yield DisunificationConstraint(bc)
 
-          val newBc = BlockingConstraints(positiveConstraints ++ negativeConstraints)
 
-          // TODO: Hack to remove min term from model
-          val model = breuSolver.getModel()
-          val tmpModel : Model =
-            Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
+          val newBc = BlockingConstraints(positiveConstraints ++ negativeConstraints)
 
           Some((tmpModel, Model(model), newBc))
         }
