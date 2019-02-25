@@ -105,6 +105,7 @@ class Table(
     // Extract regularity constraints
     // I.e., if the newly added head of a branch is similar in structure to a previous,
     // at least one of the literals must differ (i.e. a negative blocking clause)
+    // TODO: We need to add regularity constraints
     val regularityConstraints : BlockingConstraints =
       (tBranch :: rBranches).map(_.regularityConstraints).fold(BlockingConstraints.Empty)(_ ++ _)
 
@@ -118,7 +119,7 @@ class Table(
     tryClose(
       tBranch,
       partialModel,
-      blockingConstraints ++ regularityConstraints,
+      // blockingConstraints ++ regularityConstraints,
       maxTime) match {
       case None => None
       case Some((relModel, newFullModel, blockingConstraints)) => {
@@ -153,207 +154,74 @@ class Table(
   }
 
   def tryClose(
-    testBranch : Branch,
+    branch : Branch,
     partialModel : Model,
-    blockingConstraints : BlockingConstraints,
-    maxTime : Long) : (Option[(Model, Model, BlockingConstraints)]) = {
-
-    val branches = closedBranches
-
-    Settings.breu match {
-      case "old" => tryCloseOldBreu(testBranch, branches, partialModel, blockingConstraints, maxTime)
-      case "new" => tryCloseNewBreu(testBranch, branches, partialModel, blockingConstraints, maxTime)
-      case "both" => {
-        val ret1 = tryCloseOldBreu(testBranch, branches, partialModel, blockingConstraints, maxTime)
-        val ret2 = tryCloseNewBreu(testBranch, branches, partialModel, blockingConstraints, maxTime)
-        if (Settings.debug) {
-          println("ret1:  " + ret1)
-          println("ret2: " + ret2)
-        }
-        assert(ret1.isDefined == ret2.isDefined)
-        ret1
-      }
-    }
-  }
-
-  def tryCloseOldBreu(
-    testBranch : Branch,
-    branches : List[Branch],
-    partialModel : Model,
-    blockingConstraints : BlockingConstraints,
-    maxTime : Long) : (Option[(Model, Model, BlockingConstraints)]) = Timer.measure("BREU-old") {
-
-    val testProblem = testBranch.toBreu
-    val subProblems = branches.map(_.toBreu)
-    if ((testProblem :: subProblems) contains None) {
-      D.dprintln("tryClose: couldn't create feasible subProblem")
-      None
-    } else {
-      var domains = Domains.Empty
-      val breuSubProblems =
-        for (sp <- testProblem :: subProblems) yield {
-          val (subDomains, subEqs, subGoals) = sp.get
-          domains = domains.extend(subDomains)
-          (subGoals, subEqs)
-        }
-
-      // if (Settings.prune_model)
-      //   domains = domains.pruneWithModel(partialModel)
-
-      val relTerms = testBranch.head.terms
-
-      val breuGoals = breuSubProblems.map(_._1)
-      val breuEqs = breuSubProblems.map(_._2)
-      val breuSolver = new breu.LazySolver[Term, String]()
-      val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
-      try {
-
-        val breuProblem =
-          breuSolver.createProblem(
-            domains.domains,
-            breuGoals,
-            breuEqs,
-            posBlockingClauses,
-            negBlockingClauses)
-
-        if (Settings.debug)
-          println(breuProblem)
-        if (Settings.save_breu) {
-          D.breuCount += 1
-          val filename = "BREU_PROBLEMS/" + D.breuCount + ".breu"
-          breuProblem.saveToFile(filename)
-          println("Saved to: " + filename)
-        }
-
-
-        println("BLOCKING CONSTRAINTS")
-        println("pos")
-        println(posBlockingClauses.mkString("..."))
-        println("neg")
-        println(negBlockingClauses.mkString("..."))
-
-        breuProblem.solve(maxTime) match {
-          case breu.Result.SAT => {
-            val positiveConstraints =
-              for (bc <- breuProblem.positiveBlockingClauses) yield UnificationConstraint(bc)
-            val negativeConstraints =
-              for (bc <- breuProblem.negativeBlockingClauses) yield DisunificationConstraint(bc)
-            val model = breuProblem.getModel
-            val newBc = BlockingConstraints(positiveConstraints ++ negativeConstraints)
-
-            // TODO: Hack to remove min term from model
-            val tmpModel : Model =
-              Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
-
-            Some((tmpModel, Model(model), newBc))
-          }
-          case breu.Result.UNSAT | breu.Result.UNKNOWN => {
-            None
-          }
-        }
-      } catch {
-        // TODO: Catch ContradictoryException in BREU?
-        case e : org.sat4j.specs.TimeoutException => {
-          throw new TimeoutException
-
-        }
-      }
-    }
-  }
-
-
-  def tryCloseNewBreu(
-    testBranch : Branch,
-    branches : List[Branch],    
-    partialModel : Model,
-    blockingConstraints : BlockingConstraints,
     maxTime : Long) : (Option[(Model, Model, BlockingConstraints)]) = Timer.measure("BREU-new") {
-
     val breuSolver = Prover.breuSolver
 
-    breuSolver.restart()
+    // println(branch)
+    val relTerms = branch.head.terms
 
-    val relTerms = testBranch.head.terms
-    val addedTerms = MSet() : MSet[Term]
-
-    val (posBlockingClauses, negBlockingClauses) = blockingConstraints.toBlockingClauses()
-    try { 
-      for (p <- posBlockingClauses)
-        breuSolver.addUnificationConstraint(p)
-
-      for (p <- negBlockingClauses)
-        breuSolver.addDisunificationConstraint(p)
-    } catch {
-      case e : org.sat4j.specs.ContradictionException => {
-        return None
-      }
-    }
-
-    for (b <- testBranch :: branches) {
-      if (b.conflicts.length == 0) {
-        return None
-      } else {
-        val funEqs = b.funEquations
-        val eqs = b.equations
-        val goals =
-          for (c <- b.conflicts) yield {
-            c match {
-              case Branch.ComplementaryPair(a1, a2) => {
-                (for ((arg1, arg2) <- a1.args zip a2.args) yield {
-                  (arg1, arg2)
-                }).toList
-              }
-              case Branch.InvalidEquation(t1, t2) => {
-                List((t1, t2))
-              }
+    if (branch.conflicts.length == 0) {
+      return None
+    } else {
+      val funEqs = branch.funEquations
+      val eqs = branch.equations
+      val goals =
+        for (c <- branch.conflicts) yield {
+          c match {
+            case Branch.ComplementaryPair(a1, a2) => {
+              (for ((arg1, arg2) <- a1.args zip a2.args) yield {
+                (arg1, arg2)
+              }).toList
+            }
+            case Branch.InvalidEquation(t1, t2) => {
+              List((t1, t2))
             }
           }
-
-
-        // BREU arguments
-        val tmpTerms = MSet() : MSet[Term]
-        for (t <- b.order.termList) {
-          tmpTerms += t
-          if (!(addedTerms contains t)) {
-            val d =
-              if (partialModel contains t) {
-                Set(partialModel(t))
-              } else if(t.isUniversal) {
-                tmpTerms.toSet
-              } else {
-                Set(t)
-              }
-            breuSolver.addDomain(t, d)
-            addedTerms += t
-          }
-        }
-
-        var nextDummyPredicate = 0
-        val breuFlatEqs1 =
-          (for (PositiveEquation(lhs, rhs) <- eqs) yield {
-            nextDummyPredicate += 1
-            val newPred = "dummy_predicate_" + nextDummyPredicate
-            List((newPred, List(), lhs), (newPred, List(), rhs))
-          }).flatten
-
-        val breuFlatEqs2 =
-          for (feq <- funEqs) yield {
-            (feq.fun, feq.args, feq.res)
-          }
-
-        for (eq <- breuFlatEqs1 ++ breuFlatEqs2) {
-          breuSolver.addFunction(eq)
         }
 
 
-        val breuGoals = goals
-
-        for (g <- goals) {
-          breuSolver.addGoal(g)
+      // BREU arguments
+      val tmpTerms = MSet() : MSet[Term]
+      for (t <- branch.order.termList) {
+        tmpTerms += t
+        if (!(breuSolver.getAddedTerms() contains t)) {
+          val d =
+            if (partialModel contains t) {
+              Set(partialModel(t))
+            } else if(t.isUniversal) {
+              tmpTerms.toSet
+            } else {
+              Set(t)
+            }
+          breuSolver.addVariable(t, d)
         }
-
-        breuSolver.push()
       }
+
+      val breuFlatEqs1 =
+        (for (PositiveEquation(lhs, rhs) <- eqs) yield {
+          val newPred = breuSolver.genDummyPredicate()
+          List((newPred, List(), lhs), (newPred, List(), rhs))
+        }).flatten
+
+      val breuFlatEqs2 =
+        for (feq <- funEqs) yield {
+          (feq.fun, feq.args, feq.res)
+        }
+
+      for (eq <- breuFlatEqs1 ++ breuFlatEqs2) {
+        breuSolver.addFunction(eq)
+      }
+
+
+      val breuGoals = goals
+
+      for (g <- goals) {
+        breuSolver.addGoal(g)
+      }
+
+      breuSolver.push()
     }
 
 
@@ -362,7 +230,10 @@ class Table(
       if (Settings.debug)
         println(breuSolver)
 
-      val result = breuSolver.solve(maxTime)
+      val result = 
+        Timer.measure("BREU-solve") {
+        breuSolver.solve(maxTime)
+      }
       result match {
         case breu.Result.SAT => {
           val model = breuSolver.getModel()
@@ -383,6 +254,7 @@ class Table(
           Some((tmpModel, Model(model), newBc))
         }
         case breu.Result.UNSAT | breu.Result.UNKNOWN => {
+          breuSolver.pop()
           None
         }
       }
@@ -394,5 +266,5 @@ class Table(
         throw new TimeoutException
       }
     }
-  }
+  }  
 }

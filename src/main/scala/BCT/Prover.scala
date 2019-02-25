@@ -11,7 +11,8 @@ object Prover {
   var PROVE_TABLE_STEP = 0
   var startClause = 0
 
-  val breuSolver = new breu.LazyOnlineSolver[Term, String]()
+  val offlineBreuSolver = new breu.Solver[Term, String]()  
+  val breuSolver = new breu.Solver[Term, String]()
 
   def proveTable(
     table : Table,
@@ -31,15 +32,20 @@ object Prover {
         println(table.simple)
     }
 
-    if (Settings.timeout.isDefined && System.currentTimeMillis - startTime > Settings.timeout.get)
+    if (Settings.timeout.isDefined && System.currentTimeMillis - startTime > Settings.timeout.get) {
+      // TODO: Clean up breuSolver...
       throw new TimeoutException
+    }
 
     if (table.isClosed) {
       D.dboxprintln("Closed!")
+      // TODO: Clean up breuSolver...      
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
       D.dprintln("\tmax depth (" + MAX_DEPTH + ") reached")
       maxDepthReached = true
+      breuSolver.pop()
+      // TODO: Clean up breuSolver...      
       None
     } else {
       val allSteps =
@@ -112,6 +118,7 @@ object Prover {
           D.dprintln("Fail...")
         }
       }
+      breuSolver.pop()
       None
     }
   }
@@ -137,6 +144,7 @@ object Prover {
     var result = None : Option[Table]
 
     startTime = System.currentTimeMillis
+    breuSolver.restart()
 
     // TODO: Begin by trying to close the unit-clause tableaux (with weak connections I guess)
     val unitClauses = inputClauses.filter(_.length == 1).map(_.toPseudoLiterals().head)
@@ -183,7 +191,7 @@ object Prover {
       D.dprintln("\t" + sc)
 
     // We have to try all input clauses
-    maxDepth = Settings.start_max_depth
+    maxDepth = Settings.start_max_depth + unitClauses.length
     maxDepthReached = true
 
     Timer.measure("Prove") {

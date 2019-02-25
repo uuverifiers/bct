@@ -15,8 +15,6 @@ object Settings {
 
   var start_clause = None : Option[Int]
 
-  var breu = "new"
-
   var time = true
   var debug = false
   var progress_print = false
@@ -40,7 +38,6 @@ object Settings {
     println("Eessential backtracking: " + essential) 
     println("Start Clause: " + start_clause)
     println("Start Max Depth: " + start_max_depth)
-    println("BREU: " + breu)    
     println("Saving BREU-problems: " + save_breu)
   }
 }

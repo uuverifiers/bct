@@ -26,28 +26,4 @@ class RegressionTest extends FunSpec {
       }
     }
   }
-
-  // val unknownSources = new File(getClass.getResource("/unknown/").toURI())
-  // val unknownFiles = getListOfFiles(unknownSources, List(".p"))
-
-  // describe("UNKNOWN") {
-  //   for (f <- unknownFiles) {      
-  //     it(f.getName()) {
-  //       val ret = Benchmarker.run(f.toString)
-  //       assert(ret == "UNKNOWN")
-  //     }
-  //   }    
-  // }
-
-  // val timeoutSources = new File(getClass.getResource("/timeout/").toURI())
-  // val timeoutFiles = getListOfFiles(timeoutSources, List(".p"))
-
-  // describe("TIMEOUT") {
-  //   for (f <- timeoutFiles) {      
-  //     it(f.getName()) {
-  //       val ret = Benchmarker.run(f.toString)
-  //       assert(ret == "TIMEOUT")
-  //     }
-  //   }    
-  // }  
 }
