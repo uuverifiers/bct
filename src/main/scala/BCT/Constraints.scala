@@ -2,67 +2,34 @@ package bct
 
 import scala.collection.mutable.ListBuffer
 
-// TODO: Add type for List[(Term, Term)]
 
-abstract class Constraint {
-  def instantiate(model : Model) : Constraint
-
+object Constraint {
+  type Clause = List[(Term, Term)]
 }
 
-case class UnificationConstraint(val equalityDisjunction : List[(Term, Term)])
-    extends Constraint {
+import Constraint.Clause
 
-  val c = equalityDisjunction
+abstract class Constraint(clause : Clause) {
+  val c = clause
+  def instantiate(model : Model) : Constraint
+}
+
+case class UnificationConstraint(val equalityClause : Clause)
+    extends Constraint(equalityClause) {
 
   def instantiate(model : Model) : UnificationConstraint = {
-    UnificationConstraint(for ((s,t) <- equalityDisjunction) yield {
+    UnificationConstraint(for ((s,t) <- equalityClause) yield {
       (model.par(s), model.par(t))
     })
   }
 }
-case class DisunificationConstraint(val disequalityDisjunction : List[(Term, Term)])
-    extends Constraint {
-  val c = disequalityDisjunction
+
+case class DisunificationConstraint(val disequalityClause : Clause)
+    extends Constraint(disequalityClause) {
   
   def instantiate(model : Model) : DisunificationConstraint = {
-    DisunificationConstraint(for ((s,t) <- disequalityDisjunction) yield {
+    DisunificationConstraint(for ((s,t) <- disequalityClause) yield {
       (model.par(s), model.par(t))
     })
   }
 }
-
-// object BlockingConstraints {
-//   def apply(constraint : Constraint) : BlockingConstraints = BlockingConstraints(List(constraint))
-
-//   def fromBlockingClauses(blockingClauses : List[List[(Term, Term)]]) : BlockingConstraints = {
-//     val constraints = for (bc <- blockingClauses) yield UnificationConstraint(bc)
-//     BlockingConstraints(constraints)
-//   }
-
-//   val Empty  = BlockingConstraints(List())
-// }
-
-// case class BlockingConstraints(val blockingConstraints : List[Constraint]) {
-
-//   def ++(that : BlockingConstraints) = {
-//     BlockingConstraints(blockingConstraints ++ that.blockingConstraints)
-//   }
-
-//   def instantiate(model : Model) = 
-//     BlockingConstraints(blockingConstraints.map(_.instantiate(model)))
-
-//   // TODO: This is for legacy BREU
-//   def toBlockingClauses() = {
-//     val posBC = ListBuffer() : ListBuffer[List[(Term, Term)]]
-//     val negBC = ListBuffer() : ListBuffer[List[(Term, Term)]]    
-//     val tmp = 
-//       for (bc <- blockingConstraints) yield {
-//         bc match {
-//           case UnificationConstraint(eq) => posBC += eq
-//           case DisunificationConstraint(eq) => negBC += eq
-//         }
-//       }
-//     (posBC.toList, negBC.toList)
-//   }
-
-// }

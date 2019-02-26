@@ -123,7 +123,6 @@ object Prover {
     // (a) We only need to consider positive starting clauses
     // (b) We do not wish to start with a unit clause
 
-    // TODO: Since all unit clauses are on the branch, maybe we can ignore starting with them?
     if (Settings.start_clause.isDefined) {
       List(inputClauses(Settings.start_clause.get))
     } else {
@@ -143,6 +142,7 @@ object Prover {
     breuSolver.restart()
 
     // TODO: Begin by trying to close the unit-clause tableaux (with weak connections I guess)
+    //       Write a test-case for this!
     val unitClauses = inputClauses.filter(_.length == 1).map(_.toPseudoLiterals().head)
 
     if (!unitClauses.isEmpty) {
@@ -168,7 +168,7 @@ object Prover {
             val index = (i, j)
             literalMap += key -> (index :: literalMap.getOrElse(key, List()))            
           }
-          // TODO: What to do with these?
+          // TODO: When do we expand with positive or negative equations?
           case PositiveEquation(lhs, rhs) => {}
           case NegativeEquation(lhs, rhs) => {}            
         }
