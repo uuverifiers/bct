@@ -143,14 +143,6 @@ class UnitTest extends FunSuite with DiagrammedAssertions {
     assert(empty_pc.isEmpty)
   }
 
-  test ("BlockingConstraints") {
-    val ac_bc = List((a, c), (b, c))
-    val pc_ac_bc = UnificationConstraint(ac_bc)
-    val nc_ac_bc = DisunificationConstraint(ac_bc)
-    assert(BlockingConstraints(pc_ac_bc) == BlockingConstraints.fromBlockingClauses(List(ac_bc)))
-    assert(BlockingConstraints(List()) == BlockingConstraints.Empty)
-  }
-
   test ("Domains") {
     val d = Domains(Map())
     assert(d == Domains.Empty)
