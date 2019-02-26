@@ -18,12 +18,25 @@ class RegressionTest extends FunSpec {
   val satSources = new File(getClass.getResource("/sat/").toURI())
   val satFiles = getListOfFiles(satSources, List(".p"))
 
-  describe("SAT") {
-    for (f <- satFiles) {
-      it(f.getName()) {
-        val ret = Benchmarker.run(f.toString)
-        assert(ret == "SAT")
-      }
-    }
-  }
+  // describe("SAT") {
+  //   for (f <- satFiles) {
+  //     it(f.getName()) {
+  //       val ret = Benchmarker.run(f.toString)
+  //       assert(ret == "SAT")
+  //     }
+  //   }
+  // }
+
+  // describe("Regularity") {
+  //   for (f <- satFiles) {
+  //     it(f.getName()) {
+  //       Settings.regularity = true
+  //       Settings.instantiate = false
+  //       // Settings.debug = true
+  //       println(Settings)
+  //       val ret = Benchmarker.run(f.toString)
+  //       assert(ret == "SAT")
+  //     }
+  //   }
+  // }  
 }

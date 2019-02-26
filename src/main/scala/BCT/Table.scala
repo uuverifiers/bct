@@ -49,7 +49,7 @@ class Table(
   closedBranches : List[Branch],
   val steps : List[(Int, Int)] = List(),
   val partialModel : Model = Model.Empty,
-  blockingConstraints : BlockingConstraints = BlockingConstraints.Empty)
+  val regularityConstraints : List[DisunificationConstraint] = List())
   (implicit strong : Boolean = true) {
 
 
@@ -72,7 +72,7 @@ class Table(
     else
       "") + "\n" +
       "steps: " + steps.reverse.mkString(".") + "\n" +
-      "Model: \n" + partialModel
+      "Model: \n" + (if (Settings.instantiate) partialModel else "n/a")
 
   val simple =
     "\ttable\n" + 
@@ -106,8 +106,13 @@ class Table(
     // I.e., if the newly added head of a branch is similar in structure to a previous,
     // at least one of the literals must differ (i.e. a negative blocking clause)
     // TODO: We need to add regularity constraints
-    val regularityConstraints : BlockingConstraints =
-      (tBranch :: rBranches).map(_.regularityConstraints).fold(BlockingConstraints.Empty)(_ ++ _)
+    val newRegularityConstraints : List[DisunificationConstraint] =
+      if (Settings.regularity)
+        (tBranch :: rBranches).map(_.regularityConstraints).flatten
+      else
+        List()
+
+    val allRegularityConstraints = newRegularityConstraints ++ regularityConstraints
 
     // If we are instantiating, we do not need to check the closed branches
     val actualClosedBranches =
@@ -119,19 +124,20 @@ class Table(
     tryClose(
       tBranch,
       partialModel,
-      // blockingConstraints ++ regularityConstraints,
+      List() : List[UnificationConstraint],
+      allRegularityConstraints : List[DisunificationConstraint],
       maxTime) match {
       case None => None
-      case Some((relModel, newFullModel, blockingConstraints)) => {
-        // TODO: What if model extension doesn't work
-        val newPartialModel = partialModel.extend(relModel).get        
+      case Some((relModel, newFullModel)) => {
+        // Only do partial model extension if we are instantiating...
+        val newPartialModel = if (Settings.instantiate) partialModel.extend(relModel).get else partialModel
         val closedTable =
           new Table(
             rBranches ++ openBranches.tail,
             tBranch.closed :: closedBranches,
             step :: steps,
             newPartialModel,
-            blockingConstraints)
+            allRegularityConstraints)
         if (Settings.instantiate)
           Some(closedTable.instantiate(newPartialModel))
         else
@@ -144,22 +150,23 @@ class Table(
   def instantiate(model : Model) = {
     val newOpenBranches = openBranches.map(_.instantiate(model))
     val newClosedBranches = closedBranches.map(_.instantiate(model))
-    val newBlockingConstraints = blockingConstraints.instantiate(model)
+    val newRegularityConstraints = regularityConstraints.map(_.instantiate(model))
     new Table(
       newOpenBranches,
       newClosedBranches,
       steps,
       partialModel,
-      newBlockingConstraints)(strong)
+      newRegularityConstraints)(strong)
   }
 
   def tryClose(
     branch : Branch,
     partialModel : Model,
-    maxTime : Long) : (Option[(Model, Model, BlockingConstraints)]) = Timer.measure("BREU-new") {
+    unificationConstraints : List[UnificationConstraint],
+    disunificationConstraints : List[DisunificationConstraint],
+    maxTime : Long) : (Option[(Model, Model)]) = Timer.measure("BREU-new") {
     val breuSolver = Prover.breuSolver
 
-    // println(branch)
     val relTerms = branch.head.terms
 
     if (branch.conflicts.length == 0) {
@@ -188,7 +195,7 @@ class Table(
         tmpTerms += t
         if (!(breuSolver.getAddedTerms() contains t)) {
           val d =
-            if (partialModel contains t) {
+            if (Settings.instantiate && (partialModel contains t)) {
               Set(partialModel(t))
             } else if(t.isUniversal) {
               tmpTerms.toSet
@@ -221,6 +228,14 @@ class Table(
         breuSolver.addGoal(g)
       }
 
+      if (!unificationConstraints.isEmpty)
+        throw new Exception("Unification Constraints provided!")
+
+      for (du <- disunificationConstraints) {
+        breuSolver.addDisunificationConstraint(du.c)
+      }
+
+
       breuSolver.push()
     }
 
@@ -242,16 +257,7 @@ class Table(
           val tmpModel : Model =
             Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
 
-          val (posBC, negBC) = breuSolver.getBlockingClauses()
-          val positiveConstraints =
-            for (bc <- posBC) yield UnificationConstraint(bc)
-          val negativeConstraints =
-            for (bc <- negBC) yield DisunificationConstraint(bc)
-
-
-          val newBc = BlockingConstraints(positiveConstraints ++ negativeConstraints)
-
-          Some((tmpModel, Model(model), newBc))
+          Some((tmpModel, Model(model)))
         }
         case breu.Result.UNSAT | breu.Result.UNKNOWN => {
           breuSolver.pop()

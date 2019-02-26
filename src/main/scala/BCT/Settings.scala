@@ -1,6 +1,23 @@
 package bct
 
 object Settings {
+
+
+  override def toString = {
+    "\tDebug: " + debug + "\n" + 
+    "\tTime: " + time     + "\n" + 
+    "\tHard-coded: " + hard_coded + "\n" + 
+    "\tProgress Print: " + progress_print + "\n" + 
+    "\tPrint Full Table: " + full_table         + "\n" + 
+    "\tTimeout: " + timeout + "\n" + 
+    "\tRegularity: " + regularity + "\n" + 
+    "\tPrune Model: " + prune_model + "\n" + 
+    "\tInstantiate: " + instantiate + "\n" + 
+    "\tEessential backtracking: " + essential  + "\n" + 
+    "\tStart Clause: " + start_clause + "\n" + 
+    "\tStart Max Depth: " + start_max_depth + "\n" + 
+    "\tSaving BREU-problems: " + save_breu
+  }
   var timeout = None : Option[Int]
 
 
@@ -26,18 +43,6 @@ object Settings {
 
   def print() = {
     D.dlargeboxprintln("SETTINGS")
-    println("Debug: " + debug)
-    println("Time: " + time)    
-    println("Hard-coded: " + hard_coded)
-    println("Progress Print: " + progress_print)
-    println("Print Full Table: " + full_table)        
-    println("Timeout: " + timeout)
-    println("Regularity: " + regularity)
-    println("Prune Model: " + prune_model)
-    println("Instantiate: " + instantiate)
-    println("Eessential backtracking: " + essential) 
-    println("Start Clause: " + start_clause)
-    println("Start Max Depth: " + start_max_depth)
-    println("Saving BREU-problems: " + save_breu)
+    println(this)
   }
 }

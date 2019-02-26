@@ -44,7 +44,6 @@ object Prover {
     } else if (table.depth > MAX_DEPTH) {
       D.dprintln("\tmax depth (" + MAX_DEPTH + ") reached")
       maxDepthReached = true
-      breuSolver.pop()
       // TODO: Clean up breuSolver...      
       None
     } else {
@@ -100,10 +99,10 @@ object Prover {
             table.extendAndClose(copiedClause, idx, (clause, idx), remTime)
           }
 
+
         if (handleResult.isDefined) {
+          // If this worked that means we have pushed one subproblem
           D.dboxprintln("Success!")
-          // D.dprintln("\nProveTable...(" + steps.reverse.mkString(",") + "> " +
-          //   (clause, idx) + ") .... (" + CUR_PROVE_TABLE_STEP +")")
 
           proveTable(
             handleResult.get,
@@ -111,14 +110,13 @@ object Prover {
             literalMap,
             (clause,idx) :: steps) match {
             case Some(nextTable) if nextTable.isClosed => return Some(nextTable)
-            case None if Settings.essential => return None
-            case _ => ()
+            // case None if Settings.essential =>
+            case _ => breuSolver.pop()
           }
         } else {
           D.dprintln("Fail...")
         }
       }
-      breuSolver.pop()
       None
     }
   }
@@ -132,10 +130,11 @@ object Prover {
     if (Settings.start_clause.isDefined) {
       List(inputClauses(Settings.start_clause.get))
     } else {
-      val candidateClauses =  inputClauses.filter(_.isNegative)
-      if (candidateClauses.isEmpty)
-        throw new Exception("Only unit or negative clauses!")
-      candidateClauses
+      // val candidateClauses =  inputClauses.filter(_.isNegative)
+      // if (candidateClauses.isEmpty)
+      //   throw new Exception("Only unit or negative clauses!")
+      // candidateClauses
+      inputClauses
     }
   }
 

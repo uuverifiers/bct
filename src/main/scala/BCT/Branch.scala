@@ -171,12 +171,10 @@ case class Branch(
     Branch(pl :: pseudoLiterals, newOrder, isClosed, strong)
   }
 
-  lazy val regularityConstraints : BlockingConstraints = {
+  lazy val regularityConstraints : List[DisunificationConstraint] = {
     val h = pseudoLiterals.head
-    BlockingConstraints(
-      for (pl <- pseudoLiterals.tail; if (h.lit.regularityConstraint(pl.lit).isDefined))
-      yield h.lit.regularityConstraint(pl.lit).get
-    )
+    for (pl <- pseudoLiterals.tail; if (h.lit.regularityConstraint(pl.lit).isDefined))
+    yield h.lit.regularityConstraint(pl.lit).get
   }
 
   def instantiate(model : Model) = {
