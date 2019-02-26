@@ -83,25 +83,8 @@ object BCT extends App {
     println("\t" + i)
 
   for (i <- inputs) {
-    println(Benchmarker.run(i))
+    println(Benchmarker.benchmark(i, 5))
+
   }
-
-
-  //   args(0) match {
-  //     case "dir" => {
-  //       val inputDir = args(1)
-  //       val split = args(1).split('/').reverse
-  //       val outFile = 
-  //         (if (split(0) == "")
-  //           split(1)
-  //         else
-  //           split(0)) + ".out"
-  //       Benchmarker.testDir(inputDir, outFile, TIMEOUT)
-  //     }
-  //     case "parse" => {
-  //       Benchmarker.parseFile(args(1))
-  //     }
-  //   }
-  // }
 }
 

@@ -25,7 +25,7 @@ object Settings {
   var essential = false
   
 
-  var start_max_depth = 5
+  var start_max_depth = 2
 
 
   var start_clause = None : Option[Int]

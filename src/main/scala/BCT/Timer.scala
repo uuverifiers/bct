@@ -21,6 +21,12 @@ object Timer {
   private val callCounters = new HashMap[String, Int] {
     override def default(op : String) : Int = 0
   }
+
+  def data() : Map[String, (Int, Long)]= {
+    val functions = callCounters.keys
+    (for (f <- functions)
+    yield f -> (callCounters(f), accumulatedTimes(f))).toMap
+  }
   
   private def addTime : Unit = {
     val now = System.nanoTime
@@ -51,6 +57,7 @@ object Timer {
     accumulatedTimes.clear
     callCounters.clear
   }
+
   
   override def toString : String = {
     val resBuf = ArrayBuilder.make[(String, Int, Long)]

@@ -11,8 +11,15 @@ object Prover {
   var PROVE_TABLE_STEP = 0
   var startClause = 0
 
-  val offlineBreuSolver = new breu.Solver[Term, String]()  
-  val breuSolver = new breu.Solver[Term, String]()
+  var breuSolver = new breu.Solver[Term, String](8)
+
+  def reset() = {
+    startTime = 0
+    maxDepthReached = false
+    maxDepth = 0
+    PROVE_TABLE_STEP = 0
+    startClause = 0
+  }
 
   def proveTable(
     table : Table,
@@ -22,6 +29,7 @@ object Prover {
   )(implicit MAX_DEPTH : Int) : Option[Table] = {
     PROVE_TABLE_STEP += 1    
     val CUR_PROVE_TABLE_STEP = PROVE_TABLE_STEP
+
     if (!steps.isEmpty)
       D.dprintln(steps.reverse.mkString(">"))
     if (Settings.debug) {
@@ -37,10 +45,10 @@ object Prover {
     }
 
     if (table.isClosed) {
-      D.dboxprintln("Closed!")
+      D.dlargeboxprintln("Closed!")
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
-      D.dprintln("\tmax depth (" + MAX_DEPTH + ") reached")
+      // D.dprintln("\tmax depth (" + MAX_DEPTH + ") reached")
       maxDepthReached = true
       None
     } else {
@@ -68,15 +76,15 @@ object Prover {
           )
         }
 
-      if (Settings.debug) {
-        if (Settings.hard_coded.isDefined) {
-          D.dboxprintln("Hard-coded: " + possibleSteps.head)
-        } else {
-          D.dboxprintln("Possible steps: (" + MAX_DEPTH + ")")
-          for (ps <- possibleSteps)
-            println("\t" + ps)
-        }
-      }
+      // if (Settings.debug) {
+      //   if (Settings.hard_coded.isDefined) {
+      //     D.dboxprintln("Hard-coded: " + possibleSteps.head)
+      //   } else {
+      //     D.dboxprintln("Possible steps: (" + MAX_DEPTH + ")")
+      //     for (ps <- possibleSteps)
+      //       println("\t" + ps)
+      //   }
+      // }
 
       for ((clause, idx) <- possibleSteps) {
         val branch = table.nextBranch
@@ -88,10 +96,8 @@ object Prover {
 
         val handleResult = 
           if (clause == -1) {
-            D.dboxprintln("[" + CUR_PROVE_TABLE_STEP + "] Closing Directly")
             table.close(remTime)
           } else {
-            D.dprintclause(inputClauses(clause), idx, "[" + CUR_PROVE_TABLE_STEP + "] ")            
             val copiedClause = inputClauses(clause).copy(CUR_PROVE_TABLE_STEP.toString)
             table.extendAndClose(copiedClause, idx, (clause, idx), remTime)
           }
@@ -99,19 +105,27 @@ object Prover {
 
         if (handleResult.isDefined) {
           // If this worked that means we have pushed one subproblem
-          D.dboxprintln("Success!")
+          // D.dboxprintln("Success!")
+          if (clause == -1)
+            D.dboxprintln("[" + (">"*steps.length) + CUR_PROVE_TABLE_STEP + "] Closing Directly")
+          else
+            D.dprintclause(inputClauses(clause), idx, "[" + (">"*steps.length) + CUR_PROVE_TABLE_STEP + "] ")                        
 
           proveTable(
             handleResult.get,
             inputClauses,
             literalMap,
             (clause,idx) :: steps) match {
-            case Some(nextTable) if nextTable.isClosed => return Some(nextTable)
-            // case None if Settings.essential =>
-            case _ => breuSolver.pop()
+            case Some(nextTable) => {
+              assert(nextTable.isClosed)
+              return Some(nextTable)
+            }
+            case None => {
+              breuSolver.pop()
+              if (Settings.essential)
+                return None
+            }
           }
-        } else {
-          D.dprintln("Fail...")
         }
       }
       None
@@ -138,8 +152,11 @@ object Prover {
   def prove(inputClauses : List[PseudoClause]) = {
     var result = None : Option[Table]
 
+    reset()
+
     startTime = System.currentTimeMillis
     breuSolver.restart()
+    // var breuSolver = new breu.Solver[Term, String](8)
 
     // TODO: Begin by trying to close the unit-clause tableaux (with weak connections I guess)
     //       Write a test-case for this!

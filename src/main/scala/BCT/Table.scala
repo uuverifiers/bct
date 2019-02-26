@@ -62,7 +62,6 @@ class Table(
 
 
   override def toString =
-    "\ttable\n" + 
     (if (!openBranches.isEmpty)
       "----open----\n" + openBranches.mkString("\n") + "\n"
     else
@@ -75,9 +74,8 @@ class Table(
       "Model: \n" + (if (Settings.instantiate) partialModel else "n/a")
 
   val simple =
-    "\ttable\n" + 
     (if (!openBranches.isEmpty)
-      "----open----\n" + openBranches.mkString("\n") + "\n"
+      "----open----\n" + openBranches.map(_.simpleString()).mkString("\n") + "\n"
     else
       "")
 
@@ -241,8 +239,8 @@ class Table(
 
     try {
 
-      if (Settings.debug)
-        println(breuSolver)
+      // if (Settings.debug)
+      //   println(breuSolver)
 
       val result = 
         Timer.measure("BREU-solve") {

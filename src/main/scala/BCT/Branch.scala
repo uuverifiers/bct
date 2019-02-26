@@ -43,7 +43,10 @@ case class Branch(
     pseudoLiterals.mkString("<-") + " || " + order + " || " + conflicts.mkString(" v ")
 
   def simpleString() =
-    pseudoLiterals.mkString("<-") + " || " + order    
+    if (pseudoLiterals.length > 3) 
+      pseudoLiterals.take(3).mkString("<-") + "..."
+    else
+      pseudoLiterals.mkString("<-")
 
   lazy val closed = Branch(pseudoLiterals, order, true, strong)
   lazy val weak = Branch(pseudoLiterals, order, isClosed, false)
