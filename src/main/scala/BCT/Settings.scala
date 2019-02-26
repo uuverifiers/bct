@@ -11,7 +11,6 @@ object Settings {
     "\tPrint Full Table: " + full_table         + "\n" + 
     "\tTimeout: " + timeout + "\n" + 
     "\tRegularity: " + regularity + "\n" + 
-    "\tPrune Model: " + prune_model + "\n" + 
     "\tInstantiate: " + instantiate + "\n" + 
     "\tEessential backtracking: " + essential  + "\n" + 
     "\tStart Clause: " + start_clause + "\n" + 
@@ -22,7 +21,6 @@ object Settings {
 
 
   var regularity = false
-  var prune_model = true
   var instantiate = true
   var essential = false
   

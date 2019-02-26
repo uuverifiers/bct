@@ -33,18 +33,15 @@ object Prover {
     }
 
     if (Settings.timeout.isDefined && System.currentTimeMillis - startTime > Settings.timeout.get) {
-      // TODO: Clean up breuSolver...
       throw new TimeoutException
     }
 
     if (table.isClosed) {
       D.dboxprintln("Closed!")
-      // TODO: Clean up breuSolver...      
       Some(table)
     } else if (table.depth > MAX_DEPTH) {
       D.dprintln("\tmax depth (" + MAX_DEPTH + ") reached")
       maxDepthReached = true
-      // TODO: Clean up breuSolver...      
       None
     } else {
       val allSteps =
@@ -87,7 +84,7 @@ object Prover {
           if (Settings.timeout.isDefined)
             Settings.timeout.get - (System.currentTimeMillis - startTime)
           else
-            1000 * 3600 // TODO: Now timeout is 1 hour
+            throw new Exception("No timeout defined")
 
         val handleResult = 
           if (clause == -1) {

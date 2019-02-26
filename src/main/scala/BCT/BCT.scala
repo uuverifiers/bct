@@ -15,7 +15,6 @@ object BCT extends App {
   def handleArguments(args : List[String]) : Unit = {
     val timeoutR = "-(timeout|to)=(\\d+)".r
     val regularityR = "(\\+|-)regularity".r
-    val pruneModelR = "(\\+|-)prune".r
     val instantiateR = "(\\+|-)instantiate".r
     val essentialR = "(\\+|-)essential".r    
     val startMaxDepthR = "-start-max-depth=(\\d+)".r
@@ -39,9 +38,6 @@ object BCT extends App {
 
         case essentialR("+") => Settings.essential = true
         case essentialR("-") => Settings.essential = false                    
-
-        case pruneModelR("+") => Settings.prune_model = true
-        case pruneModelR("-") => Settings.prune_model = false
 
         case progressPrintR("+") => Settings.progress_print = true
         case progressPrintR("-") => Settings.progress_print = false
