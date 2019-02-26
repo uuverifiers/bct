@@ -103,4 +103,8 @@ object Benchmarker {
       }
     (ret, Timer.data())
   }
+
+  def run(problem : String)  = {
+    runOnce(problem)._1
+  }  
 }
