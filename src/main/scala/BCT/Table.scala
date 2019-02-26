@@ -105,7 +105,6 @@ class Table(
     // Extract regularity constraints
     // I.e., if the newly added head of a branch is similar in structure to a previous,
     // at least one of the literals must differ (i.e. a negative blocking clause)
-    // TODO: We need to add regularity constraints
     val newRegularityConstraints : List[DisunificationConstraint] =
       if (Settings.regularity)
         (tBranch :: rBranches).map(_.regularityConstraints).flatten
@@ -253,9 +252,9 @@ class Table(
         case breu.Result.SAT => {
           val model = breuSolver.getModel()
 
-          // TODO: Hack to remove min term from model          
+          // TODO: Make relevant term extraction happen in caller instead of here.
           val tmpModel : Model =
-            Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap).removeMin()
+            Model((for (rt <- relTerms) yield (rt -> model(rt))).toMap)
 
           Some((tmpModel, Model(model)))
         }

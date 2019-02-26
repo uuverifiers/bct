@@ -1,10 +1,6 @@
 package bct
 
 object PseudoClause {
-  def apply(lit : Literal) : PseudoClause =
-    // TODO: Order here is empty... 
-    PseudoClause(List(), List(lit), Order.Empty)
-
   val Empty = PseudoClause(List(), List(), Order.Empty)
 }
 
@@ -26,12 +22,6 @@ case class PseudoClause(val funEquations : List[FunEquation], literals : List[Li
     PseudoClause(funEquations.map(_.copy(suffix)), literals.map(_.copy(suffix)), order.copy(suffix))
   }
 
-  def +(that : PseudoClause) = {
-    throw new Exception("Not implemented")    
-    // PseudoClause(this.pseudoLiterals ++ that.pseudoLiterals)
-  }
-
-
   def toPseudoLiterals() : List[PseudoLiteral] = {
     val lits = 
       for (l <- literals) yield {
@@ -40,6 +30,4 @@ case class PseudoClause(val funEquations : List[FunEquation], literals : List[Li
 
     lits
   }
-
-  // def extend(pseudoLiteral : PseudoLiteral) : PseudoClause = extend(List(pseudoLiteral))
 }

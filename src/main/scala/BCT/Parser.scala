@@ -12,10 +12,7 @@ object Parser {
   type QPair = (Term, List[FunEquation])
 
   def qpairs2order(qpairs : List[QPair]) : Order = {
-    // println("pairs2order(" + qpairs.mkString(",") + ")")
-    val order = Order(for ((t, feqs) <- qpairs) yield { t })
-    // println("\t" + order)
-    order
+    Order(for ((t, feqs) <- qpairs) yield { t })
   }
 
   var allCount = -1
@@ -125,12 +122,6 @@ object Parser {
 
   def toClause(formula : IFormula, quantifiers : List[QPair]) : (Order, List[FunEquation], List[Literal]) = {
     val freeExistentials = quantifiers.reverse.takeWhile(!_._1.isUniversal)    
-    if (Settings.debug) {
-      println("To Clause")
-      println("\tquans: " + quantifiers)
-      println("Free constant!")
-      println("\t" + freeExistentials.mkString(", "))
-    }
     constants ++= freeExistentials.map(_._1)
     formula match {
       case IAtom(pred, args) => atom2Internal(pred, args, quantifiers, false)
@@ -148,7 +139,6 @@ object Parser {
   //
   def toCNF(formula : IFormula, quantifiers : List[QPair]) : List[(Order, List[FunEquation], List[Literal])] = {
     formula match {
-      // TODO: Check negations
       case INot(INot(sf)) => toCNF(sf, quantifiers)
 
       case IBoolLit(true) => List((Order.Empty, List(), List(True)))
@@ -224,7 +214,7 @@ object Parser {
     val CNF = toCNF(~formula, List())
 
     if (Settings.debug) {
-      println("Constants in problem:")
+      println("Global constants:")
       for (c <- constants)
         println("\t" + c)
     }

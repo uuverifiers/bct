@@ -29,8 +29,6 @@ abstract class Literal {
   }
 }
 
-
-// TODO: Should these objects be considered Atoms?
 case object True extends Literal {
   val terms = Set()
   override def copy(suffix : String) = this

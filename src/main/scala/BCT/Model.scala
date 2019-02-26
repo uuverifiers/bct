@@ -18,10 +18,6 @@ class Model(val assignments : Map[Term, Term]) {
   def apply(t : Term) = assignments(t)
   def contains(t : Term) = assignments.contains(t)
 
-  def removeMin() : Model = {
-    Model(assignments.filter{ case (_, v) => v != Order.MIN_TERM})
-  }
-
   // Partial Application
   def par(t : Term) = assignments.getOrElse(t, t)
 

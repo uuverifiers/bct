@@ -22,14 +22,6 @@ object Order {
 
 
 case class Order(terms : List[Term]) {
-  // TODO: Here we are inserting dummy-element!
-  // val terms = 
-  //   if (terms_.isEmpty)
-  //     List(Order.MIN_TERM)
-  //   else if (terms_.last.isUniversal)
-  //     terms_ ++ List(Order.MIN_TERM)
-  //   else
-  //     terms_
 
   override def toString() = {
     terms.mkString(">")
@@ -39,10 +31,6 @@ case class Order(terms : List[Term]) {
 
 
   def +(that : Order) = {
-
-    // assert(that.terms.filter(_.isUniversal).forall(t => !(terms contains t)))
-
-    // val newVariables = that.terms_.filter(_.isUniversal)
 
     // Given two orders ... All universals should be pulled to the
     // front (if they existed before) while constans should be left

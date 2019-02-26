@@ -3,10 +3,6 @@ package bct
 import ap.parser._
 
 object Term {
-
-
-  // def apply(term : String) : Term =
-  //   new Term(term)
   def apply(term : String, id : Int) : Term =
     new Term(term, id)  
   def apply(term : String, id : Int, isUniversal : Boolean) : Term =
@@ -24,13 +20,10 @@ object Term {
   }  
 }
 
-// TODO: Remove default id
+// TODO: Evaluate the use of ID and see if it is necessary?
 
-// TODO: Make sure that terms of different id are same?
-class Term(val term : String, val id : Int = 0, val isUniversal : Boolean = false, val isSkolem : Boolean = false) {
-  // forall/exists sign in front of universal/existential terms
-
-  def canEqual(a: Any) = a.isInstanceOf[Term]
+class Term(val term : String, val id : Int, val isUniversal : Boolean = false, val isSkolem : Boolean = false) {
+    def canEqual(a: Any) = a.isInstanceOf[Term]
 
   override def equals(that: Any): Boolean =
     that match {
