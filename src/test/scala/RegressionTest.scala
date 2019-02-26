@@ -8,35 +8,48 @@ import scala.io.Source
 class RegressionTest extends FunSpec {
 
   Settings.timeout = Some(30000)
+  Settings.regularity = false
+  Settings.instantiate = false
+  Settings.essential = false
+  Settings.start_max_depth = 5
+  Settings.start_clause = None
+  Settings.time = false
+  Settings.debug = false
+  Settings.progress_print = false
+  Settings.full_table = false
+  Settings.save_breu = false
+  Settings.hard_coded = None
 
-  def getListOfFiles(dir: File, extensions: List[String]): List[File] = {
-    dir.listFiles.filter(_.isFile).toList.filter { file =>
-      extensions.exists(file.getName.endsWith(_))
+  val satSources = new File(getClass.getResource("/sat/").toURI()) + "/"
+
+  describe("Simple") {
+    val files = List(
+      "SET002+3.p",
+      "SET043+1.p",
+      "SET055+1.p"
+    ).map(satSources + _)
+
+    for (f <- files) {
+      it (f) {
+        assert(Benchmarker.run(f) == "SAT")
+      }
     }
   }
-  
-  val satSources = new File(getClass.getResource("/sat/").toURI())
-  val satFiles = getListOfFiles(satSources, List(".p"))
 
-  // describe("SAT") {
-  //   for (f <- satFiles) {
-  //     it(f.getName()) {
-  //       val ret = Benchmarker.run(f.toString)
-  //       assert(ret == "SAT")
-  //     }
-  //   }
-  // }
+  describe("-instantiate +regularity") {
+    val files = List(
+      "SET002+3.p",
+      "SET043+1.p",
+      "SET044+1.p",
+      "SET055+1.p"
+    ).map(satSources + _)
 
-  // describe("Regularity") {
-  //   for (f <- satFiles) {
-  //     it(f.getName()) {
-  //       Settings.regularity = true
-  //       Settings.instantiate = false
-  //       // Settings.debug = true
-  //       println(Settings)
-  //       val ret = Benchmarker.run(f.toString)
-  //       assert(ret == "SAT")
-  //     }
-  //   }
-  // }  
+    Settings.regularity = true
+
+    for (f <- files) {
+      it (f) {
+        assert(Benchmarker.run(f) == "SAT")
+      }
+    }
+  }  
 }
