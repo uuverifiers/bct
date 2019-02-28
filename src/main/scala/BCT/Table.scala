@@ -22,7 +22,7 @@ object Table {
 
 
   // Special constructor for creating with unit clauses
-  def create(cls : PseudoClause, unitClauses : List[PseudoLiteral], strong : Boolean = true) = {
+  def create(cls : PseudoClause, unitClauses : List[PseudoLiteral] = List(), strong : Boolean = true) = {
     val branches = (for (l <- cls.toPseudoLiterals()) yield {
       val branchOrder = 
         if (unitClauses.isEmpty) {
@@ -34,7 +34,7 @@ object Table {
             tmpOrder = tmpOrder + uc.order
           tmpOrder + cls.order
         }
-      Branch(l :: unitClauses, branchOrder, strong)
+      Branch(l :: unitClauses, branchOrder, strong, unitClauses.length)
     }).toList
     new Table(branches, List())(strong)
   }
@@ -118,6 +118,7 @@ class Table(
       else
         closedBranches
 
+
     tryClose(
       tBranch,
       partialModel,
@@ -161,90 +162,92 @@ class Table(
     partialModel : Model,
     unificationConstraints : List[UnificationConstraint],
     disunificationConstraints : List[DisunificationConstraint],
-    maxTime : Long) : (Option[(Model, Model)]) = Timer.measure("BREU-new") {
+    maxTime : Long) : (Option[(Model, Model)]) = Timer.measure("tryClose") {
     val breuSolver = Prover.breuSolver
 
     val relTerms = branch.head.terms
 
-    if (branch.conflicts.length == 0) {
-      return None
-    } else {
-      val funEqs = branch.funEquations
-      val eqs = branch.equations
-      val goals =
-        for (c <- branch.conflicts) yield {
-          c match {
-            case Branch.ComplementaryPair(a1, a2) => {
-              (for ((arg1, arg2) <- a1.args zip a2.args) yield {
-                (arg1, arg2)
-              }).toList
+    Timer.measure("Creating BREU") {
+      if (branch.conflicts.length == 0) {
+        return None
+      } else {
+        val funEqs = branch.funEquations
+        val eqs = branch.equations
+        val goals =
+          for (c <- branch.conflicts) yield {
+            c match {
+              case Branch.ComplementaryPair(a1, a2) => {
+                (for ((arg1, arg2) <- a1.args zip a2.args) yield {
+                  (arg1, arg2)
+                }).toList
+              }
+              case Branch.InvalidEquation(t1, t2) => {
+                List((t1, t2))
+              }
             }
-            case Branch.InvalidEquation(t1, t2) => {
-              List((t1, t2))
-            }
+          }
+
+
+        // BREU arguments
+        val tmpTerms = MSet() : MSet[Term]
+        for (t <- branch.order.termList) {
+          tmpTerms += t
+          if (!(breuSolver.getAddedTerms() contains t)) {
+            val d =
+              if (Settings.instantiate && (partialModel contains t)) {
+                Set(partialModel(t))
+              } else if(t.isUniversal) {
+                tmpTerms.toSet
+              } else {
+                Set(t)
+              }
+            breuSolver.addVariable(t, d)
           }
         }
 
+        val breuFlatEqs1 =
+          (for (PositiveEquation(lhs, rhs) <- eqs) yield {
+            val newPred = breuSolver.genDummyPredicate()
+            List((newPred, List(), lhs), (newPred, List(), rhs))
+          }).flatten
 
-      // BREU arguments
-      val tmpTerms = MSet() : MSet[Term]
-      for (t <- branch.order.termList) {
-        tmpTerms += t
-        if (!(breuSolver.getAddedTerms() contains t)) {
-          val d =
-            if (Settings.instantiate && (partialModel contains t)) {
-              Set(partialModel(t))
-            } else if(t.isUniversal) {
-              tmpTerms.toSet
-            } else {
-              Set(t)
-            }
-          breuSolver.addVariable(t, d)
-        }
-      }
+        val breuFlatEqs2 =
+          for (feq <- funEqs) yield {
+            (feq.fun, feq.args, feq.res)
+          }
 
-      val breuFlatEqs1 =
-        (for (PositiveEquation(lhs, rhs) <- eqs) yield {
-          val newPred = breuSolver.genDummyPredicate()
-          List((newPred, List(), lhs), (newPred, List(), rhs))
-        }).flatten
-
-      val breuFlatEqs2 =
-        for (feq <- funEqs) yield {
-          (feq.fun, feq.args, feq.res)
+        for (eq <- breuFlatEqs1 ++ breuFlatEqs2) {
+          breuSolver.addFunction(eq)
         }
 
-      for (eq <- breuFlatEqs1 ++ breuFlatEqs2) {
-        breuSolver.addFunction(eq)
+
+        val breuGoals = goals
+
+        for (g <- goals) {
+          breuSolver.addGoal(g)
+        }
+
+        if (!unificationConstraints.isEmpty)
+          throw new Exception("Unification Constraints provided!")
+
+        for (du <- disunificationConstraints) {
+          breuSolver.addDisunificationConstraint(du.c)
+        }
+
+        breuSolver.push()
       }
-
-
-      val breuGoals = goals
-
-      for (g <- goals) {
-        breuSolver.addGoal(g)
-      }
-
-      if (!unificationConstraints.isEmpty)
-        throw new Exception("Unification Constraints provided!")
-
-      for (du <- disunificationConstraints) {
-        breuSolver.addDisunificationConstraint(du.c)
-      }
-
-
-      breuSolver.push()
     }
 
 
     try {
-
-      // if (Settings.debug)
-      //   println(breuSolver)
-
-      val result = 
-        Timer.measure("BREU-solve") {
-        breuSolver.solve(maxTime)
+      val result =
+        Timer.measure("BREU") {
+          val start = System.currentTimeMillis
+          val tmp = breuSolver.solve(maxTime)
+          val stop = System.currentTimeMillis
+          // if (Settings.debug)
+          //   println("BREU CALL TIME: " + (stop - start))
+          tmp
       }
       result match {
         case breu.Result.SAT => {
@@ -257,7 +260,9 @@ class Table(
           Some((tmpModel, Model(model)))
         }
         case breu.Result.UNSAT | breu.Result.UNKNOWN => {
-          breuSolver.pop()
+          Timer.measure("BREU.pop") {
+            breuSolver.pop()
+          }
           None
         }
       }

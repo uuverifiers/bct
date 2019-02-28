@@ -5,12 +5,12 @@ package bct
  */
 
 object Branch {
-  def apply(pseudoLiteral : PseudoLiteral, strong : Boolean) : Branch = {
-    Branch(List(pseudoLiteral), pseudoLiteral.order, strong)
+  def apply(pseudoLiteral : PseudoLiteral, strong : Boolean, unitClauses : Int) : Branch = {
+    Branch(List(pseudoLiteral), pseudoLiteral.order, strong, unitClauses)
   }
 
-  def apply(pseudoLiterals : List[PseudoLiteral], order : Order, strong : Boolean) : Branch = {
-    Branch(pseudoLiterals, order, false, strong)
+  def apply(pseudoLiterals : List[PseudoLiteral], order : Order, strong : Boolean, unitClauses : Int) : Branch = {
+    Branch(pseudoLiterals, order, false, strong, unitClauses)
   }
 
   class Conflict
@@ -34,7 +34,8 @@ case class Branch(
   pseudoLiterals : List[PseudoLiteral],
   order : Order,
   val isClosed : Boolean,
-  val strong : Boolean) extends Iterable[PseudoLiteral] {
+  val strong : Boolean,
+  val unitClauses : Int) extends Iterable[PseudoLiteral] {
   assert(pseudoLiterals.length > 0)
   def length = pseudoLiterals.length
   def depth = pseudoLiterals.length
@@ -48,8 +49,8 @@ case class Branch(
     else
       pseudoLiterals.mkString("<-")
 
-  lazy val closed = Branch(pseudoLiterals, order, true, strong)
-  lazy val weak = Branch(pseudoLiterals, order, isClosed, false)
+  lazy val closed = Branch(pseudoLiterals, order, true, strong, unitClauses)
+  lazy val weak = Branch(pseudoLiterals, order, isClosed, false, unitClauses)
 
   lazy val conflicts : List[Branch.Conflict] = {
     if (strong) {
@@ -171,18 +172,19 @@ case class Branch(
 
   def extend(pl : PseudoLiteral, augOrder : Order) = {
     val newOrder = order + augOrder    
-    Branch(pl :: pseudoLiterals, newOrder, isClosed, strong)
+    Branch(pl :: pseudoLiterals, newOrder, isClosed, strong, unitClauses)
   }
 
   lazy val regularityConstraints : List[DisunificationConstraint] = {
-    val h = pseudoLiterals.head
-    for (pl <- pseudoLiterals.tail; if (h.lit.regularityConstraint(pl.lit).isDefined))
+    val nonUnit = pseudoLiterals.take(pseudoLiterals.length - unitClauses)
+    val h = nonUnit.head
+    for (pl <- nonUnit.tail; if (h.lit.regularityConstraint(pl.lit).isDefined))
     yield h.lit.regularityConstraint(pl.lit).get
   }
 
   def instantiate(model : Model) = {
     // TODO: Maybe we can change the order here in a clever way?
     val newPseudoLiterals = pseudoLiterals.map(_.instantiate(model))
-    Branch(newPseudoLiterals, order, isClosed, strong)
+    Branch(newPseudoLiterals, order, isClosed, strong, unitClauses)
   }
 }

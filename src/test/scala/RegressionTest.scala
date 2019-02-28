@@ -26,6 +26,7 @@ class RegressionTest extends FunSpec {
     val files = List(
       "SET002+3.p",
       "SET043+1.p",
+      // "SET045+1.p",      
       "SET055+1.p"
     ).map(satSources + _)
 
@@ -40,7 +41,8 @@ class RegressionTest extends FunSpec {
     val files = List(
       "SET002+3.p",
       "SET043+1.p",
-      "SET044+1.p",
+      // "SET044+1.p",
+      // "SET045+1.p",            
       "SET055+1.p"
     ).map(satSources + _)
 

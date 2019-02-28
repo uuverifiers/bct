@@ -20,6 +20,7 @@ object Parser {
   var skolemCount = -1
   var id = -1
 
+  val conEquations = MSet() : MSet[FunEquation]
   val constants = MSet() : MSet[Term]
 
   def newEx(quantifiers : List[QPair] = List()) : QPair = {
@@ -46,31 +47,53 @@ object Parser {
     (Term("x_" + allCount, id, true), List())
   }
 
-  // RETURNS: (x,y,z) x: New Term, y : Extra funEqs, z: new Quantifiers
-  def fixTerm(t : ITerm, quantifiers : List[QPair]) : (Term, List[FunEquation], List[QPair]) = {
+
+  def noVariables(t : ITerm) : Boolean = {
     t match {
-      case IVariable(index) => (quantifiers(index)._1, quantifiers(index)._2, List())
-
-      // TODO: Maybe ID can not be 0...
-      case IConstant(c) => (Term(c.toString, 0), List(), List())
-
-      case IFunApp(fun, args) => {
-        val funEqs = ListBuffer() : ListBuffer[FunEquation]
-        val quants = ListBuffer() : ListBuffer[QPair]
-        val newArgs =
-          for (a <- args) yield {
-            val (newArg, newFunEqs, newQuants) = fixTerm(a, quantifiers)
-            funEqs ++= newFunEqs
-            quants ++= newQuants
-            newArg
-          }
-
-        // TODO: Should this be affected by quantifiers (i.e., do we need to skolemize)
-        val (newRes, _) = newEx()
-        funEqs += FunEquation(fun.toString, newArgs.toList, newRes)
-        (newRes, funEqs.toList, (newRes, List()) :: quants.toList)
+      case IVariable(_) => false
+      case IConstant(_) => true
+      case IFunApp(_, args) => {
+        args.forall(noVariables)
       }
     }
+  }
+
+  // RETURNS: (x,y,z) x: New Term, y : Extra funEqs, z: new Quantifiers
+  def fixTerm(t : ITerm, quantifiers : List[QPair]) : (Term, List[FunEquation], List[QPair]) = {
+    val (newTerm, extraFun, newQuans) = 
+      t match {
+        case IVariable(index) => {
+          (quantifiers(index)._1, quantifiers(index)._2, List())
+        }
+
+        // TODO: Maybe ID can not be 0...
+        case IConstant(c) => {
+          val term = Term(c.toString, 0)
+          (term, List(), List())
+        }
+
+        case IFunApp(fun, args) => {
+          val funEqs = ListBuffer() : ListBuffer[FunEquation]
+          val quants = ListBuffer() : ListBuffer[QPair]
+          val newArgs =
+            for (a <- args) yield {
+              val (newArg, newFunEqs, newQuants) = fixTerm(a, quantifiers)
+              funEqs ++= newFunEqs
+              quants ++= newQuants
+              newArg
+            }
+
+          // TODO: Should this be affected by quantifiers (i.e., do we need to skolemize)
+          val (newRes, _) = newEx()
+          funEqs += FunEquation(fun.toString, newArgs.toList, newRes)
+          (newRes, funEqs.toList, (newRes, List()) :: quants.toList)
+        }
+      }
+    if (noVariables(t)) {
+      constants += newTerm
+      conEquations ++= extraFun
+    }
+    (newTerm, extraFun, newQuans)
   }
 
   def atom2Internal(pred : ap.terfor.preds.Predicate, args : Seq[ITerm], quantifiers : List[QPair], negated : Boolean = true) : (Order, List[FunEquation], List[Literal]) = {
@@ -81,6 +104,8 @@ object Parser {
         val (term, funEqs, newQuants) = fixTerm(a, quantifiers)
         allEqs ++= funEqs
         allQuants ++= newQuants
+        if (!quantifiers.exists(_._1.isUniversal)) 
+          constants += term
         term
       }
 
@@ -174,11 +199,24 @@ object Parser {
           (newOrder, feqs1 ++ feqs2, lits1 ++ lits2)
         }).toList
       }
-      case INot(IBinFormula(IBinJunctor.And, sf1, sf2)) => {
-        (for ((order1, feqs1, lits1) <- toCNF(sf1, quantifiers); (order2, feqs2, lits2) <- toCNF(sf2, quantifiers)) yield {
-          (order1 + order2, feqs1 ++ feqs2, lits1 ++ lits2)
+
+      // case IBinFormula(IBinJunctor.Or, sf1, sf2) => {
+      case INot(IBinFormula(IBinJunctor.And, sf1, sf2)) => {        
+        (for ((order1, feqs1, lits1) <- toCNF(~sf1, quantifiers); (order2, feqs2, lits2) <- toCNF(~sf2, quantifiers)) yield {
+          val newOrder =
+            if (order1 != order2)
+              order1 + order2
+            else
+              order1
+          (newOrder, feqs1 ++ feqs2, lits1 ++ lits2)
         }).toList
       }
+
+      // case INot(IBinFormula(IBinJunctor.And, sf1, sf2)) => {
+      //   (for ((order1, feqs1, lits1) <- toCNF(sf1, quantifiers); (order2, feqs2, lits2) <- toCNF(sf2, quantifiers)) yield {
+      //     (order1 + order2, feqs1 ++ feqs2, lits1 ++ lits2)
+      //   }).toList
+      // }
 
 
       case INot(IBinFormula(IBinJunctor.Eqv, sf1, sf2)) => toCNF(IBinFormula(IBinJunctor.Eqv, ~sf1, sf2), quantifiers)
@@ -191,7 +229,7 @@ object Parser {
   }
 
 
-  def tptp2Internal(fileName : String) : Option[List[PseudoClause]]= {
+  def tptp2Internal(fileName : String) : Option[(List[PseudoClause], Set[Term])]= {
     allCount = -1
     exCount = -1
     skolemCount = -1
@@ -217,6 +255,9 @@ object Parser {
       println("Global constants:")
       for (c <- constants)
         println("\t" + c)
+      println("Global funequations:")
+      for (feq <- conEquations)
+        println("\t" + feq)
     }
 
 
@@ -225,6 +266,6 @@ object Parser {
         PseudoClause(feqs, lits, order.addConstants(constants.toList))
       }
 
-    Some(pseudoClauses)
+    Some((pseudoClauses, constants.toSet))
   }
 }

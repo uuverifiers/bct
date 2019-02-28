@@ -12,10 +12,14 @@ object Settings {
     "\tTimeout: " + timeout + "\n" + 
     "\tRegularity: " + regularity + "\n" + 
     "\tInstantiate: " + instantiate + "\n" + 
-    "\tEessential backtracking: " + essential  + "\n" + 
-    "\tStart Clause: " + start_clause + "\n" + 
-    "\tStart Max Depth: " + start_max_depth + "\n" + 
-    "\tSaving BREU-problems: " + save_breu
+    "\tEssential backtracking: " + essential  + "\n" + 
+    "\tStart Clause: " + start_clause + "\n" +
+    "\tSolver Bits: " + solver_bits + "\n" +    
+    "\tStart Max Depth: " + start_max_depth + "\n" +
+    "\tRepeat: " + repeat + "\n" +
+    "\tSaving BREU-problems: " + save_breu + "\n"+
+    "\tAdd Unit Clauses: " + add_unit + "\n" +
+    "\tOnly Parse: " + only_parse
   }
   var timeout = None : Option[Int]
 
@@ -23,15 +27,19 @@ object Settings {
   var regularity = false
   var instantiate = true
   var essential = false
-  
+  var add_unit = true  
 
+  var solver_bits = 8
   var start_max_depth = 2
+  var repeat = 1
 
 
   var start_clause = None : Option[Int]
 
+
   var time = true
   var debug = false
+  var only_parse = false
   var progress_print = false
   var full_table = false
   var save_breu = false

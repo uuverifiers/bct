@@ -11,7 +11,7 @@ object Prover {
   var PROVE_TABLE_STEP = 0
   var startClause = 0
 
-  var breuSolver = new breu.Solver[Term, String](8)
+  var breuSolver = new breu.Solver[Term, String](Settings.solver_bits)
 
   def reset() = {
     startTime = 0
@@ -69,24 +69,28 @@ object Prover {
         } else {
           (-1, -1) :: (
             table.nextBranch.head.lit match {
-              case PositiveLiteral(a) => literalMap((a.predicate, true))
-              case NegativeLiteral(a) => literalMap((a.predicate, false))
+              case PositiveLiteral(a) => {
+                literalMap.getOrElse( (a.predicate, true), List())
+              }
+              case NegativeLiteral(a) => literalMap.getOrElse( (a.predicate, false), List())
+
               case _ => allSteps
             }
           )
         }
 
-      // if (Settings.debug) {
-      //   if (Settings.hard_coded.isDefined) {
-      //     D.dboxprintln("Hard-coded: " + possibleSteps.head)
-      //   } else {
-      //     D.dboxprintln("Possible steps: (" + MAX_DEPTH + ")")
-      //     for (ps <- possibleSteps)
-      //       println("\t" + ps)
-      //   }
-      // }
+      if (Settings.debug) {
+        if (Settings.hard_coded.isDefined) {
+          D.dboxprintln("Hard-coded: " + possibleSteps.head)
+        } else {
+          D.dboxprintln("Possible steps: (" + MAX_DEPTH + ")")
+          for (ps <- possibleSteps)
+            println("\t" + ps)
+        }
+      }
 
       for ((clause, idx) <- possibleSteps) {
+        // println("Trying..." + (clause , idx))
         val branch = table.nextBranch
         val remTime =
           if (Settings.timeout.isDefined)
@@ -101,7 +105,6 @@ object Prover {
             val copiedClause = inputClauses(clause).copy(CUR_PROVE_TABLE_STEP.toString)
             table.extendAndClose(copiedClause, idx, (clause, idx), remTime)
           }
-
 
         if (handleResult.isDefined) {
           // If this worked that means we have pushed one subproblem
@@ -121,6 +124,7 @@ object Prover {
               return Some(nextTable)
             }
             case None => {
+              D.cPrintln(D.colorString(" " + (clause, idx) + " fail", "RED"))
               breuSolver.pop()
               if (Settings.essential)
                 return None
@@ -149,14 +153,15 @@ object Prover {
   }
 
 
-  def prove(inputClauses : List[PseudoClause]) = {
+  def prove(inputClauses : List[PseudoClause], globalConstants : Set[Term]) = Timer.measure("prove") {
     var result = None : Option[Table]
 
     reset()
 
     startTime = System.currentTimeMillis
-    breuSolver.restart()
-    // var breuSolver = new breu.Solver[Term, String](8)
+    Timer.measure("breuSolver.restart") {
+      breuSolver.restart()
+    }
 
     // TODO: Begin by trying to close the unit-clause tableaux (with weak connections I guess)
     //       Write a test-case for this!
@@ -183,11 +188,11 @@ object Prover {
           case NegativeLiteral(a) => {
             val key = (a.predicate, true)
             val index = (i, j)
-            literalMap += key -> (index :: literalMap.getOrElse(key, List()))            
+            literalMap += key -> (index :: literalMap.getOrElse(key, List()))
           }
           // TODO: When do we expand with positive or negative equations?
           case PositiveEquation(lhs, rhs) => {}
-          case NegativeEquation(lhs, rhs) => {}            
+          case NegativeEquation(lhs, rhs) => {}
         }
       }
     }
@@ -203,27 +208,35 @@ object Prover {
     for (sc <- startClauses)
       D.dprintln("\t" + sc)
 
+    // for (c <- globalConstants)
+    //   breuSolver.addConstants(c)
+
     // We have to try all input clauses
     maxDepth = Settings.start_max_depth + unitClauses.length
     maxDepthReached = true
 
-    Timer.measure("Prove") {
-      while (!result.isDefined && maxDepthReached) {
-        maxDepthReached = false
-        maxDepth += 1
-        D.dlargeboxprintln("INCREASING MAX DEPTH: " + maxDepth)
-        var startClause = 0
-        while (startClause < startClauses.length && !result.isDefined) {
-          val iClause= startClauses(startClause)
-          val str = "   Start Clause (" + startClause + "): " + iClause + "   "
-          D.dboxprintln(str, "YELLOW")
+    while (!result.isDefined && maxDepthReached) {
+      // TODO: Lets try and print breuSolver here to make sure its empty?
+      // TOOD: This would require us to add constants every loop...
+      maxDepthReached = false
+      maxDepth += 1
+      D.dlargeboxprintln("INCREASING MAX DEPTH: " + maxDepth)
+      var startClause = 0
+      while (startClause < startClauses.length && !result.isDefined) {
+        val iClause= startClauses(startClause)
+        val str = "   Start Clause (" + startClause + "): " + iClause + "   "
+        D.dboxprintln(str, "YELLOW")
 
-          // We need to start with all unit clauses
-          val table = Table.create(iClause, unitClauses)
-
-          result = proveTable(table, inputClauses, literalMap.toMap)(maxDepth)
-          startClause += 1          
+        // We need to start with all unit clauses
+        val table = Timer.measure("Creating Table") {
+          if (Settings.add_unit) 
+            Table.create(iClause, unitClauses)
+          else
+            Table.create(iClause)
         }
+
+        result = proveTable(table, inputClauses, literalMap.toMap)(maxDepth)
+        startClause += 1
       }
     }
 

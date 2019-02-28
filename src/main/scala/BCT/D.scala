@@ -15,6 +15,7 @@ object D {
 
   def colorString(str : String, color : String) = {
     color match {
+      case "RED" => s"${RESET}${RED}" + str + s"${RESET}"
       case "YELLOW" => s"${RESET}${YELLOW}" + str + s"${RESET}"
       case "" => str
     }

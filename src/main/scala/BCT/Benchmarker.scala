@@ -34,9 +34,10 @@ object Benchmarker {
 
     var totalTime = 0.0
 
+    val padding = functions.map(_.length).max
     for (f <- functions) {
       // println(f + "\n\t" + calls(f).mkString(",") + "\n\t" + times(f).map(_.toDouble / 1000000.0).mkString(","))
-      println(f + "\t" + (calls(f).sum/count) + "\t" + (times(f).map(_.toDouble / 1000000.0).sum/count))
+      println(f + (" "*(padding-f.length)) + "\t" + (calls(f).sum/count) + "\t" + (times(f).map(_.toDouble / 1000000.0).sum/count))
       totalTime += times(f).map(_.toDouble / 1000000.0).sum/count
     }
 
@@ -45,7 +46,7 @@ object Benchmarker {
   }
 
   def runOnce(problem : String) : (String, BenchmarkData)  = {
-    val Some(pseudoClauses) = Parser.tptp2Internal(problem)
+    val Some((pseudoClauses, globalConstants)) = Parser.tptp2Internal(problem)
     val strs = List(
       "+-------------------+",
       "|  PseudoClauses:   |",
@@ -60,21 +61,19 @@ object Benchmarker {
     val start = System.currentTimeMillis
     val ret = 
       try {
-        Timer.measure("Prove") {
-          val ret = Prover.prove(pseudoClauses)
-          val stop = System.currentTimeMillis
-          if (Settings.debug) {
-            println((stop - start) + "ms")
+        val ret = Prover.prove(pseudoClauses, globalConstants)
+        val stop = System.currentTimeMillis
+        if (Settings.debug) {
+          println((stop - start) + "ms")
+        }
+        ret match {
+          case None => {
+            D.dprintln("Incomplete search")
+            "UNKNOWN"
           }
-          ret match {
-            case None => {
-              D.dprintln("Incomplete search")
-              "UNKNOWN"
-            }
-            case Some(table) => {
-              D.dprintln(table.toString)
-              "SAT"
-            }
+          case Some(table) => {
+            D.dprintln(table.toString)
+            "SAT"
           }
         }
 

@@ -169,27 +169,27 @@ class UnitTest extends FunSuite with DiagrammedAssertions {
     assert(!(dom(X) contains c))
   }
 
-  test ("Branch") {
-    // Close simple branch P(a) -> !P(a)
-    val pl_a = PseudoLiteral(PositiveLiteral(Atom(P, List(a))))
-    val pl_na = PseudoLiteral(NegativeLiteral(Atom(P, List(a))))
-    val branch0 = Branch(pl_na, true)
-    assert(branch0.length == 1)
-    // assert(!(branch0.tryClose(TIMEOUT)).isDefined)
+  // test ("Branch") {
+  //   // Close simple branch P(a) -> !P(a)
+  //   val pl_a = PseudoLiteral(PositiveLiteral(Atom(P, List(a))))
+  //   val pl_na = PseudoLiteral(NegativeLiteral(Atom(P, List(a))))
+  //   val branch0 = Branch(pl_na, true)
+  //   assert(branch0.length == 1)
+  //   // assert(!(branch0.tryClose(TIMEOUT)).isDefined)
 
-    val branch1 = branch0.extend(pl_a, Order.Empty)
-    assert(branch1.length == 2)
-    // assert(branch1.tryClose(TIMEOUT).isDefined)
+  //   val branch1 = branch0.extend(pl_a, Order.Empty)
+  //   assert(branch1.length == 2)
+  //   // assert(branch1.tryClose(TIMEOUT).isDefined)
 
-    // Close slightly more complex branch P(X,X) -> (f() = a ^ f()=b)::!P(a,b)
-    val feq1 = FunEquation(f, List(), a)
-    val feq2 = FunEquation(f, List(), b)
-    val order = Order(List(X, a, b))
+  //   // Close slightly more complex branch P(X,X) -> (f() = a ^ f()=b)::!P(a,b)
+  //   val feq1 = FunEquation(f, List(), a)
+  //   val feq2 = FunEquation(f, List(), b)
+  //   val order = Order(List(X, a, b))
 
-    val br = Branch(List(
-      PseudoLiteral(PositiveLiteral(Atom(P, List(X, X)))),
-      PseudoLiteral(List(feq1, feq2), NegativeLiteral(Atom(P, List(a,b))))
-    ), order, true)
-    // assert(br.tryClose(TIMEOUT).isDefined)
-  }
+  //   val br = Branch(List(
+  //     PseudoLiteral(PositiveLiteral(Atom(P, List(X, X)))),
+  //     PseudoLiteral(List(feq1, feq2), NegativeLiteral(Atom(P, List(a,b))))
+  //   ), order, true)
+  //   // assert(br.tryClose(TIMEOUT).isDefined)
+  // }
 }
