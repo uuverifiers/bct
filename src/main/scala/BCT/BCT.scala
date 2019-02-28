@@ -28,7 +28,8 @@ object BCT extends App {
     val debugR = "(\\+|-)debug".r
     val onlyParseR = "(\\+|-)only-parse".r
     val timeR = "(\\+|-)time".r    
-    val saveBreuR = "(\\+|-)save-breu".r    
+    val saveBreuR = "(\\+|-)save-breu".r
+    val extendEqualitiesR = "(\\+|-)extend-equalities".r        
 
     if (!args.isEmpty) {
       args.head match {
@@ -66,6 +67,9 @@ object BCT extends App {
 
         case onlyParseR("+") => Settings.only_parse = true
         case onlyParseR("-") => Settings.only_parse = false
+
+        case extendEqualitiesR("+") => Settings.extend_equalities = true
+        case extendEqualitiesR("-") => Settings.extend_equalities = false          
 
         case timeR("+") => Settings.time = true
         case timeR("-") => Settings.time = false

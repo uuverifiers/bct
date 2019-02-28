@@ -20,6 +20,7 @@ object Settings {
     "\tSaving BREU-problems: " + save_breu + "\n"+
     "\tAdd Unit Clauses: " + add_unit + "\n" +
     "\tOnly Parse: " + only_parse
+    "\tExtend Equalities: " + extend_equalities
   }
   var timeout = None : Option[Int]
 
@@ -27,7 +28,8 @@ object Settings {
   var regularity = false
   var instantiate = true
   var essential = false
-  var add_unit = true  
+  var add_unit = true
+  var extend_equalities = true
 
   var solver_bits = 8
   var start_max_depth = 2

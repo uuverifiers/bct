@@ -74,7 +74,8 @@ object Prover {
               }
               case NegativeLiteral(a) => literalMap.getOrElse( (a.predicate, false), List())
 
-              case _ => allSteps
+              case PositiveEquation(_, _) | NegativeEquation(_, _) if Settings.extend_equalities => allSteps
+              case _ => List()
             }
           )
         }
