@@ -19,6 +19,7 @@ object Settings {
     "\tRepeat: " + repeat + "\n" +
     "\tSaving BREU-problems: " + save_breu + "\n"+
     "\tAdd Unit Clauses: " + add_unit + "\n" +
+    "\tAdd Constants: " + add_constants + "\n" +    
     "\tOnly Parse: " + only_parse
     "\tExtend Equalities: " + extend_equalities
   }
@@ -29,6 +30,7 @@ object Settings {
   var instantiate = true
   var essential = false
   var add_unit = true
+  var add_constants = true
   var extend_equalities = true
 
   var solver_bits = 8

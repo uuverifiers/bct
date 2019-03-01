@@ -15,7 +15,8 @@ object BCT extends App {
   def handleArguments(args : List[String]) : Unit = {
     val timeoutR = "-(timeout|to)=(\\d+)".r
     val regularityR = "(\\+|-)regularity".r
-    val addUnitR = "(\\+|-)add-unit".r    
+    val addUnitR = "(\\+|-)add-unit".r
+    val addConstantsR = "(\\+|-)add-constants".r        
     val instantiateR = "(\\+|-)instantiate".r
     val essentialR = "(\\+|-)essential".r    
     val startMaxDepthR = "-start-max-depth=(\\d+)".r
@@ -39,7 +40,10 @@ object BCT extends App {
         case regularityR("-") => Settings.regularity = false
 
         case addUnitR("+") => Settings.add_unit = true
-        case addUnitR("-") => Settings.add_unit = false          
+        case addUnitR("-") => Settings.add_unit = false
+
+        case addConstantsR("+") => Settings.add_constants = true
+        case addConstantsR("-") => Settings.add_constants = false                    
 
         case instantiateR("+") => Settings.instantiate = true
         case instantiateR("-") => Settings.instantiate = false

@@ -209,9 +209,6 @@ object Prover {
     for (sc <- startClauses)
       D.dprintln("\t" + sc)
 
-    // for (c <- globalConstants)
-    //   breuSolver.addConstants(c)
-
     // We have to try all input clauses
     maxDepth = Settings.start_max_depth + unitClauses.length
     maxDepthReached = true

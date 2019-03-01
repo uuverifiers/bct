@@ -58,7 +58,16 @@ object Parser {
     }
   }
 
-  // RETURNS: (x,y,z) x: New Term, y : Extra funEqs, z: new Quantifiers
+  def allConstants(t : ITerm) : List[Term] = {
+    // TODO: Make a map with translation of constants!
+    t match {
+      case IVariable(_) => List()
+      case IConstant(c) => List(Term(c.toString, 0))
+      case IFunApp(_, args) => args.toList.map(allConstants).flatten
+    }
+  }
+
+  // RETURNS: (x,y,z) x: New Term, y : Extra funEqs, z: new Quantifiers, w: subconstants
   def fixTerm(t : ITerm, quantifiers : List[QPair]) : (Term, List[FunEquation], List[QPair]) = {
     val (newTerm, extraFun, newQuans) = 
       t match {
@@ -99,13 +108,15 @@ object Parser {
   def atom2Internal(pred : ap.terfor.preds.Predicate, args : Seq[ITerm], quantifiers : List[QPair], negated : Boolean = true) : (Order, List[FunEquation], List[Literal]) = {
     val allEqs = ListBuffer() : ListBuffer[FunEquation]
     val allQuants = ListBuffer() : ListBuffer[QPair]
-    val newArgs =
+    var subConstants = MSet() : MSet[Term]
+    val (newArgs) =
       for (a <- args) yield {
         val (term, funEqs, newQuants) = fixTerm(a, quantifiers)
         allEqs ++= funEqs
         allQuants ++= newQuants
         if (!quantifiers.exists(_._1.isUniversal)) 
           constants += term
+        subConstants ++= allConstants(a)
         term
       }
 
@@ -117,7 +128,7 @@ object Parser {
         PositiveLiteral(atom)
 
 
-    (qpairs2order(allQuants.toList ++ quantifiers), allEqs.toList, List(lit))
+    (qpairs2order(allQuants.toList ++ quantifiers).addConstants(subConstants.toList), allEqs.toList, List(lit))
   }
 
   def eq2Internal(term : ITerm, quantifiers : List[QPair], negated : Boolean = true) : (Order, List[FunEquation], List[Literal]) = {
@@ -260,10 +271,14 @@ object Parser {
         println("\t" + feq)
     }
 
-
     val pseudoClauses =
       for ((order, feqs, lits) <- CNF) yield {
-        PseudoClause(feqs, lits, order.addConstants(constants.toList))
+        val newOrder =
+          if (Settings.add_constants)
+            order.addConstants(constants.toList)
+          else
+            order
+        PseudoClause(feqs, lits, newOrder)
       }
 
     Some((pseudoClauses, constants.toSet))
